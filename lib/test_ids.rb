@@ -1,5 +1,6 @@
 require 'origen'
 require_relative '../config/application.rb'
+require 'origen_testers'
 
 module TestIds
   # THIS FILE SHOULD ONLY BE USED TO LOAD RUNTIME DEPENDENCIES
@@ -24,6 +25,10 @@ module TestIds
 
     def store
       @store ||= Store.new
+    end
+
+    def allocator
+      @allocator ||= Allocator.new
     end
   end
 end

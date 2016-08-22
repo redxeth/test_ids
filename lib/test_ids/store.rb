@@ -11,15 +11,20 @@ module TestIds
     attr_reader :raw
 
     def initialize
-      @raw = git.read_or_create('store')
+      @raw = YAML.load(git.read('store') || "--- {}\n")
+      # Commit an initial empty store if this is the first time it has been accessed
+      unless previous_commit
+        git.write('store', to_yaml)
+        @raw = YAML.load(git.read('store'))
+      end
     end
 
     def previous_commit
-      raw[:previous_commit]
+      raw['previous_commit']
     end
 
     def to_yaml
-      { 'previous commit' => previous_commit,
+      { 'previous_commit' => git.current_commit,
         'tests'           => tests
       }.to_yaml
     end

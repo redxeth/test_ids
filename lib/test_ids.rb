@@ -1,5 +1,6 @@
 require 'origen'
 require_relative '../config/application.rb'
+
 module TestIds
   # THIS FILE SHOULD ONLY BE USED TO LOAD RUNTIME DEPENDENCIES
   # If this plugin has any development dependencies (e.g. dummy DUT or other models that are only used
@@ -19,6 +20,10 @@ module TestIds
   class <<self
     def git
       @git ||= Git.new
+    end
+
+    def store
+      @store ||= Store.new
     end
   end
 end

@@ -1,3 +1,4 @@
+require 'yaml'
 module TestIds
   # The store is responsible for adding and retrieving test ID information from the
   # database.
@@ -18,6 +19,13 @@ module TestIds
     end
 
     def to_yaml
+      { 'previous commit' => previous_commit,
+        'tests'           => tests
+      }.to_yaml
+    end
+
+    def tests
+      []
     end
 
     def git

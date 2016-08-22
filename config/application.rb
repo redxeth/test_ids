@@ -4,6 +4,8 @@ class TestIdsApplication < Origen::Application
   # See http://origen-sdk.org/origen/api/Origen/Application/Configuration.html
   # for a full list of the configuration options available
 
+  add_config_attribute(:test_ids, default: {})
+
   # These attributes should never be changed, the duplication here will be resolved in future
   # by condensing these attributes that do similar things
   self.name       = "test_ids"
@@ -35,6 +37,8 @@ class TestIdsApplication < Origen::Application
     # Run on these directories/files by default
     #files: ["lib", "config/application.rb"],
   }
+
+  #config.test_ids = {}
 
   config.semantically_version = true
 

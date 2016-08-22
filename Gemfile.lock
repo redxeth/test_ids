@@ -3,7 +3,7 @@ PATH
   specs:
     test_ids (0.1.0)
       git
-      origen (>= 0.7.23)
+      origen (>= 0.7.25)
 
 GEM
   remote: https://rubygems.org/
@@ -60,7 +60,7 @@ GEM
     net-ldap (0.15.0)
     nokogiri (1.6.7.2)
       mini_portile2 (~> 2.0.0.rc2)
-    origen (0.7.23)
+    origen (0.7.25)
       activesupport (~> 4.1)
       bundler (~> 1.7)
       coderay (~> 1.1)
@@ -148,3 +148,6 @@ DEPENDENCIES
   coveralls
   origen_doc_helpers
   test_ids!
+
+BUNDLED WITH
+   1.12.5

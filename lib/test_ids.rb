@@ -30,5 +30,28 @@ module TestIds
     def allocator
       @allocator ||= Allocator.new
     end
+
+    def configuration
+      if block_given?
+        configure do |config|
+          yield config
+        end
+      else
+        @configuration ||= Configuration.new
+      end
+    end
+    alias_method :config, :configuration
+
+    def configure
+      yield configuration
+    end
+
+    # Mainly for testing, clears all instances including the configuration
+    def reset
+      @git = nil
+      @store = nil
+      @allocator = nil
+      @configuration = nil
+    end
   end
 end

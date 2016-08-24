@@ -24,6 +24,7 @@ module TestIds
     private
 
     def allocate_bin
+      config.bins.include.next
     end
 
     def allocate_softbin

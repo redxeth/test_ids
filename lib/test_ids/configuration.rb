@@ -3,25 +3,6 @@ module TestIds
     class Item
       attr_accessor :include, :exclude, :algorithm
 
-      class BinArray
-        def initialize
-          @store = []
-        end
-
-        def <<(val)
-          @store += Array(val)
-        end
-
-        def empty?
-          @store.empty?
-        end
-
-        def freeze
-          @store.freeze
-          super
-        end
-      end
-
       def initialize
         @include = BinArray.new
         @exclude = BinArray.new

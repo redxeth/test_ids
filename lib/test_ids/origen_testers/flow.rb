@@ -5,16 +5,10 @@ module OrigenTesters
     # test numbers
     alias_method :_orig_test, :test
     def test(instance, options = {})
-      TestIds.allocator.allocate(instance, options, _test_ids_config)
-      _orig_test(instance, options)
-    end
-
-    def _test_ids_config
-      if Origen.interface.respond_to?(:test_ids_config)
-        Origen.interface.test_ids_config
-      else
-        Origen.app.config.test_ids
+      unless TestIds.config.empty?
+        TestIds.allocator.allocate(instance, options)
       end
+      _orig_test(instance, options)
     end
   end
 end

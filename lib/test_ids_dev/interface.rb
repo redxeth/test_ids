@@ -7,7 +7,7 @@ module TestIdsDev
       when 1
         TestIds.configure do |config|
           config.bins.include << 3
-          config.bins.include << 10..20
+          config.bins.include << (10..20)
           config.bins.exclude << 15
           config.softbins = :bbbss
           config.numbers do |options|

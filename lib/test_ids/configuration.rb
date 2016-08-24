@@ -3,9 +3,28 @@ module TestIds
     class Item
       attr_accessor :include, :exclude, :algorithm
 
+      class BinArray
+        def initialize
+          @store = []
+        end
+
+        def <<(val)
+          @store += Array(val)
+        end
+
+        def empty?
+          @store.empty?
+        end
+
+        def freeze
+          @store.freeze
+          super
+        end
+      end
+
       def initialize
-        @include = []
-        @exclude = []
+        @include = BinArray.new
+        @exclude = BinArray.new
       end
 
       def callback(&block)
@@ -25,6 +44,13 @@ module TestIds
         @exclude.freeze
         super
       end
+    end
+
+    attr_accessor :repo
+
+    def initialize
+      # Will store bin table to local session store by default
+      @repo = :local
     end
 
     def bins
@@ -68,6 +94,10 @@ module TestIds
         @validated = true
         freeze
       end
+    end
+
+    def empty?
+      bins.empty? && softbins.empty? && numbers.empty?
     end
 
     def validated?

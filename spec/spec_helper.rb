@@ -24,6 +24,7 @@ require "rspec/legacy_formatters"
 require "#{Origen.top}/spec/format/origen_formatter"
 require "byebug"
 require 'pry'
+require 'test_ids'
 
 def load_target(target="default")
   Origen.target.switch_to target

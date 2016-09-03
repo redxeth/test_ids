@@ -20,7 +20,6 @@ module TestIds
 
     def freeze
       @store.freeze
-      super
     end
 
     # Returns true if the array contains the given bin number

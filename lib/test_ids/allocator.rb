@@ -15,10 +15,15 @@ module TestIds
       test.softbin ||= allocate_softbin
       test.number ||= allocate_number
       test.update_options(options)
+      store.record(test)
     end
 
     def config
       TestIds.config
+    end
+
+    def store
+      TestIds.store
     end
 
     private
@@ -34,8 +39,7 @@ module TestIds
     end
 
     def fetch_existing(name)
-      if config.repo
-      end
+      store.find(name)
     end
 
     def extract_test_name(instance, options)

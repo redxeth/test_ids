@@ -24,10 +24,16 @@ module TestIds
     end
 
     def store
+      unless @configuration
+        fail 'The test ID generator has to be configured before you can start using it'
+      end
       @store ||= Store.new
     end
 
     def allocator
+      unless @configuration
+        fail 'The test ID generator has to be configured before you can start using it'
+      end
       @allocator ||= Allocator.new
     end
 
@@ -37,13 +43,20 @@ module TestIds
           yield config
         end
       else
-        @configuration ||= Configuration.new
+        @configuration ||
+          fail('You have to create the configuration first before you can access it')
       end
     end
     alias_method :config, :configuration
 
     def configure
-      yield configuration
+      if @configuration
+        fail "You can't modify an existing test IDs configuration"
+      end
+      @configuration = Configuration.new
+      yield @configuration
+      @configuration.freeze
+      TestIds.store # Kick off the store loading ASAP
     end
 
     # Mainly for testing, clears all instances including the configuration

@@ -20,6 +20,10 @@ module TestIds
         include.empty? && exclude.empty? && !algorithm && !callback
       end
 
+      def function?
+        !!algorithm || !!callback
+      end
+
       def freeze
         @include.freeze
         @exclude.freeze

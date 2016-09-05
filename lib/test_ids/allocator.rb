@@ -21,25 +21,37 @@ module TestIds
       elsif store['manually_assigned']['bin'][t['bin'].to_s]
         t['bin'] = nil
         # Also regenerate these as they could be a function of the bin
+        t['softbin'] = nil if config.softbins.function?
+        t['number'] = nil if config.numbers.function?
+      end
+      if options[:softbin]
+        t['softbin'] = options[:softbin]
+        store['manually_assigned']['softbin'][options[:softbin].to_s] = true
+      elsif store['manually_assigned']['softbin'][t['softbin'].to_s]
         t['softbin'] = nil
+        # Also regenerate the number as it could be a function of the softbin
+        t['number'] = nil if config.numbers.function?
+      end
+      if options[:number]
+        t['number'] = options[:number]
+        store['manually_assigned']['number'][options[:number].to_s] = true
+      elsif store['manually_assigned']['number'][t['number'].to_s]
         t['number'] = nil
       end
-      t['softbin'] = options[:softbin] if options[:softbin]
-      t['number'] = options[:number] if options[:number]
       # Otherwise generate the missing ones
       t['bin'] ||= allocate_bin
       t['softbin'] ||= allocate_softbin
       t['number'] ||= allocate_number
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
-      store['references']['bin'][t['bin'].to_s] = time
-      store['references']['softbin'][t['softbin'].to_s] = time
-      store['references']['number'][t['number'].to_s] = time
+      store['references']['bin'][t['bin'].to_s] = time if t['bin']
+      store['references']['softbin'][t['softbin'].to_s] = time if t['softbin']
+      store['references']['number'][t['number'].to_s] = time if t['number']
       # Update the supplied options hash that will be forwarded to the
       # program generator
       options[:bin] = t['bin']
-      options[:softbin] = t['softbin'] if t['softbin']
-      options[:number] = t['number'] if t['number']
+      options[:softbin] = t['softbin']
+      options[:number] = t['number']
       options
     end
 
@@ -51,7 +63,9 @@ module TestIds
       @store ||= begin
         if config.repo && File.exist?(config.repo)
           s = JSON.load(File.read(config.repo))
-          @last_bin = s['pointers']['bin'] if s['pointers']['bin']
+          @last_bin = s['pointers']['bin']
+          @last_softbin = s['pointers']['softbin']
+          @last_number = s['pointers']['number']
           s
         else
           { 'tests'             => {},
@@ -68,24 +82,16 @@ module TestIds
       if config.repo
         p = Pathname.new(config.repo)
         FileUtils.mkdir_p(p.dirname)
-        sort_references
         File.open(p, 'w') { |f| f.puts JSON.pretty_generate(store) }
       end
     end
 
     private
 
-    def sort_references
-      sort_bin_references
-    end
-
-    def sort_bin_references
-      store['references']['bin'] = store['references']['bin'].sort_by { |k, v| v }.to_h
-    end
-
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out
     def allocate_bin
+      return nil if config.bins.empty?
       if store['pointers']['bin'] == 'done'
         reclaim_bin
       else
@@ -106,14 +112,60 @@ module TestIds
     end
 
     def reclaim_bin
-      sort_bin_references
-      bin = store['references']['bin'].first[0].to_i
+      store['references']['bin'] = store['references']['bin'].sort_by { |k, v| v }.to_h
+      store['references']['bin'].first[0].to_i
     end
 
     def allocate_softbin
+      return nil if config.softbins.empty?
+      if store['pointers']['softbin'] == 'done'
+        reclaim_softbin
+      else
+        b = config.softbins.include.next(@last_softbin)
+        @last_softbin = nil
+        while b && (store['manually_assigned']['softbin'][b.to_s] || config.softbins.exclude.include?(b))
+          b = config.softbins.include.next
+        end
+        # When no softbin is returned it means we have used them all, all future generation
+        # now switches to reclaim mode
+        if b
+          store['pointers']['softbin'] = b
+        else
+          store['pointers']['softbin'] = 'done'
+          reclaim_softbin
+        end
+      end
+    end
+
+    def reclaim_softbin
+      store['references']['softbin'] = store['references']['softbin'].sort_by { |k, v| v }.to_h
+      store['references']['softbin'].first[0].to_i
     end
 
     def allocate_number
+      return nil if config.numbers.empty?
+      if store['pointers']['number'] == 'done'
+        reclaim_number
+      else
+        b = config.numbers.include.next(@last_number)
+        @last_number = nil
+        while b && (store['manually_assigned']['number'][b.to_s] || config.numbers.exclude.include?(b))
+          b = config.numbers.include.next
+        end
+        # When no number is returned it means we have used them all, all future generation
+        # now switches to reclaim mode
+        if b
+          store['pointers']['number'] = b
+        else
+          store['pointers']['number'] = 'done'
+          reclaim_number
+        end
+      end
+    end
+
+    def reclaim_number
+      store['references']['number'] = store['references']['number'].sort_by { |k, v| v }.to_h
+      store['references']['number'].first[0].to_i
     end
 
     def extract_test_name(instance, options)

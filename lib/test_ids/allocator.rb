@@ -9,13 +9,27 @@ module TestIds
       @callbacks = []
       name = extract_test_name(instance, options)
       name = "#{name}_#{options[:index]}" if options[:index]
-      test = fetch_existing(name) || Test.new(name)
-      test.update_from_options(options)
-      test.bin ||= allocate_bin
-      test.softbin ||= allocate_softbin
-      test.number ||= allocate_number
-      test.update_options(options)
-      store.record(test)
+      store['tests'][name] ||= {}
+      t = store['tests'][name]
+      t['referenced'] = Time.now.utc
+      # If the user has supplied any of these, that number should be used
+      # and reserved so that it is not automatically generated later
+      if options[:bin]
+        t['bin'] = options[:bin]
+        store['manually_assigned']['bin'][options[:bin].to_s] = true
+      end
+      t['softbin'] = options[:softbin] if options[:softbin]
+      t['number'] = options[:number] if options[:number]
+      # Otherwise generate the missing ones
+      t['bin'] ||= allocate_bin
+      t['softbin'] ||= allocate_softbin
+      t['number'] ||= allocate_number
+      # Update the supplied options hash that will be forwarded to the
+      # program generator
+      options[:bin] = t['bin']
+      options[:softbin] = t['softbin']
+      options[:number] = t['number']
+      options
     end
 
     def config
@@ -23,23 +37,49 @@ module TestIds
     end
 
     def store
-      TestIds.store
+      @store ||= begin
+        if config.repo && File.exist?(config.repo)
+          s = JSON.load(File.read(config.repo))
+          @last_bin = s['pointers']['bin'] if s['pointers']['bin']
+          s
+        else
+          { 'manually_assigned' => { 'bin' => {}, 'softbin' => {}, 'number' => {} },
+            'pointers'          => { 'bin' => {}, 'softbin' => {}, 'number' => {} },
+            'tests'             => {}
+          }
+        end
+      end
+    end
+
+    # Saves the current allocator state to the repository
+    def save
+      if config.repo
+        p = Pathname.new(config.repo)
+        FileUtils.mkdir_p(p.dirname)
+        store['tests'] = store['tests'].sort_by { |k, v| v['referenced'] }.to_h
+        File.open(p, 'w') { |f| f.puts JSON.pretty_generate(store) }
+      end
     end
 
     private
 
     def allocate_bin
-      config.bins.include.next
+      if @last_bin
+        b = config.bins.include.next(@last_bin)
+        @last_bin = nil
+      else
+        b = config.bins.include.next
+      end
+      while store['manually_assigned']['bin'][b.to_s]
+        b = config.bins.include.next
+      end
+      store['pointers']['bin'] = b
     end
 
     def allocate_softbin
     end
 
     def allocate_number
-    end
-
-    def fetch_existing(name)
-      store.find(name)
     end
 
     def extract_test_name(instance, options)

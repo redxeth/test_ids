@@ -161,6 +161,3 @@ DEPENDENCIES
   origen_doc_helpers
   test_ids!
   timecop
-
-BUNDLED WITH
-   1.12.5

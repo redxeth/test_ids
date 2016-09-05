@@ -29,10 +29,14 @@ describe "A Bin Array" do
     b.next(18).should == 19
     b.next.should == 20
     b.next.should == 30
-    b.next.should == 10
+    # When the end is reached it should return nil
+    b.next.should == nil
+    b.next.should == nil
+    b.next.should == nil
     b.next(13).should == 15
     b.next(25).should == 30
-    b.next(100).should == 10
+    b.next(100).should == nil
+    b.next.should == nil
   end
 
   it "the include? method works" do

@@ -63,8 +63,11 @@ module TestIds
           @next += 1
         else
           @pointer += 1
-          # Wrap around when we get to the end of the array
-          @pointer = 0 if @pointer == @store.size
+          # Return nil when we get to the end of the array
+          if @pointer == @store.size
+            @pointer -= 1
+            return nil
+          end
           @next = @store[@pointer]
           @next = @next.min if @next.is_a?(Range)
         end

@@ -150,4 +150,46 @@ describe "The number allocator" do
     a(:t4)[:number].should == 2
     a(:t5)[:number].should == 3
   end
+
+  it "the numbers can be generated from an algorithm" do
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.softbins.include << (500..600)
+      config.numbers.algorithm = :bbbsss000
+    end
+    t = a(:t1)
+    t[:bin].should == 1
+    t[:softbin].should == 500
+    t[:number].should == 1500000
+    t = a(:t2)
+    t[:bin].should == 2
+    t[:softbin].should == 501
+    t[:number].should == 2501000
+    t = a(:t3)
+    t[:bin].should == 3
+    t[:softbin].should == 502
+    t[:number].should == 3502000
+  end
+
+  it "the numbers can be generated from a callback" do
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.softbins.include << (500..600)
+      config.numbers.callback do |bin, softbin|
+        bin + softbin
+      end
+    end
+    t = a(:t1)
+    t[:bin].should == 1
+    t[:softbin].should == 500
+    t[:number].should == 501
+    t = a(:t2)
+    t[:bin].should == 2
+    t[:softbin].should == 501
+    t[:number].should == 503
+    t = a(:t3)
+    t[:bin].should == 3
+    t[:softbin].should == 502
+    t[:number].should == 505
+  end
 end

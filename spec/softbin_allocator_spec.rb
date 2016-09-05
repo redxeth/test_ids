@@ -150,4 +150,38 @@ describe "The softbin allocator" do
     a(:t4)[:softbin].should == 2
     a(:t5)[:softbin].should == 3
   end
+
+  it "the softbins can be generated from an algorithm" do
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.softbins.algorithm = :bbb000
+    end
+    t = a(:t1)
+    t[:bin].should == 1
+    t[:softbin].should == 1000
+    t = a(:t2)
+    t[:bin].should == 2
+    t[:softbin].should == 2000
+    t = a(:t3)
+    t[:bin].should == 3
+    t[:softbin].should == 3000
+  end
+
+  it "the softbins can be generated from a callback" do
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.softbins.callback do |bin|
+        bin * 3
+      end
+    end
+    t = a(:t1)
+    t[:bin].should == 1
+    t[:softbin].should == 3
+    t = a(:t2)
+    t[:bin].should == 2
+    t[:softbin].should == 6
+    t = a(:t3)
+    t[:bin].should == 3
+    t[:softbin].should == 9
+  end
 end

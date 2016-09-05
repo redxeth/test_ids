@@ -33,11 +33,6 @@ module TestIds
 
     attr_accessor :repo
 
-    def initialize
-      # Will store bin table to local session store by default
-      @repo = :local
-    end
-
     def bins
       @bins ||= Item.new
     end

@@ -40,8 +40,8 @@ module TestIds
       end
       # Otherwise generate the missing ones
       t['bin'] ||= allocate_bin
-      t['softbin'] ||= allocate_softbin
-      t['number'] ||= allocate_number
+      t['softbin'] ||= allocate_softbin(t['bin'])
+      t['number'] ||= allocate_number(t['bin'], t['softbin'])
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
       store['references']['bin'][t['bin'].to_s] = time if t['bin']
@@ -116,23 +116,41 @@ module TestIds
       store['references']['bin'].first[0].to_i
     end
 
-    def allocate_softbin
+    def allocate_softbin(bin)
       return nil if config.softbins.empty?
-      if store['pointers']['softbin'] == 'done'
-        reclaim_softbin
-      else
-        b = config.softbins.include.next(@last_softbin)
-        @last_softbin = nil
-        while b && (store['manually_assigned']['softbin'][b.to_s] || config.softbins.exclude.include?(b))
-          b = config.softbins.include.next
-        end
-        # When no softbin is returned it means we have used them all, all future generation
-        # now switches to reclaim mode
-        if b
-          store['pointers']['softbin'] = b
+      if algo = config.softbins.algorithm
+        if algo.to_s =~ /^[b\d]+$/
+          number = algo.to_s
+          bin = bin.to_s
+          if number =~ /(b+)/
+            if bin.size > Regexp.last_match(1).size
+              fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
+            end
+            number = number.sub(/b+/, bin)
+          end
         else
-          store['pointers']['softbin'] = 'done'
+          fail "Unknown softbin algorithm: #{algo} (note that references to bin numbers must be lower cased 'b')"
+        end
+        number.to_i
+      elsif callback = config.softbins.callback
+        callback.call(bin)
+      else
+        if store['pointers']['softbin'] == 'done'
           reclaim_softbin
+        else
+          b = config.softbins.include.next(@last_softbin)
+          @last_softbin = nil
+          while b && (store['manually_assigned']['softbin'][b.to_s] || config.softbins.exclude.include?(b))
+            b = config.softbins.include.next
+          end
+          # When no softbin is returned it means we have used them all, all future generation
+          # now switches to reclaim mode
+          if b
+            store['pointers']['softbin'] = b
+          else
+            store['pointers']['softbin'] = 'done'
+            reclaim_softbin
+          end
         end
       end
     end
@@ -142,23 +160,48 @@ module TestIds
       store['references']['softbin'].first[0].to_i
     end
 
-    def allocate_number
+    def allocate_number(bin, softbin)
       return nil if config.numbers.empty?
-      if store['pointers']['number'] == 'done'
-        reclaim_number
-      else
-        b = config.numbers.include.next(@last_number)
-        @last_number = nil
-        while b && (store['manually_assigned']['number'][b.to_s] || config.numbers.exclude.include?(b))
-          b = config.numbers.include.next
-        end
-        # When no number is returned it means we have used them all, all future generation
-        # now switches to reclaim mode
-        if b
-          store['pointers']['number'] = b
+      if algo = config.numbers.algorithm
+        if algo.to_s =~ /^[bs\d]+$/
+          number = algo.to_s
+          bin = bin.to_s
+          if number =~ /(b+)/
+            if bin.size > Regexp.last_match(1).size
+              fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
+            end
+            number = number.sub(/b+/, bin)
+          end
+          softbin = softbin.to_s
+          if number =~ /(s+)/
+            if softbin.size > Regexp.last_match(1).size
+              fail "Softbin number (#{softbin}) overflows the test number algorithm (#{algo})"
+            end
+            number = number.sub(/s+/, softbin)
+          end
+          number.to_i
         else
-          store['pointers']['number'] = 'done'
+          fail "Unknown test number algorithm: #{algo} (note that references to bin and softbin numbers must be lower cased 'b' and 's')"
+        end
+      elsif callback = config.numbers.callback
+        callback.call(bin, softbin)
+      else
+        if store['pointers']['number'] == 'done'
           reclaim_number
+        else
+          b = config.numbers.include.next(@last_number)
+          @last_number = nil
+          while b && (store['manually_assigned']['number'][b.to_s] || config.numbers.exclude.include?(b))
+            b = config.numbers.include.next
+          end
+          # When no number is returned it means we have used them all, all future generation
+          # now switches to reclaim mode
+          if b
+            store['pointers']['number'] = b
+          else
+            store['pointers']['number'] = 'done'
+            reclaim_number
+          end
         end
       end
     end

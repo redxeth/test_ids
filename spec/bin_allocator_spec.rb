@@ -136,5 +136,18 @@ describe "The bin allocator" do
     a(:t3)[:bin].should == 3
     a(:t1)[:bin].should == 1  # More recent reference makes 2 the oldest
     a(:t4)[:bin].should == 2
+
+    TestIds.allocator.save
+    TestIds.__reset__
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.repo = f
+    end
+    a(:t1)[:bin].should == 1
+    a(:t2)[:bin].should == 2
+    a(:t3)[:bin].should == 3
+    a(:t1)[:bin].should == 1  # More recent reference makes 2 the oldest
+    a(:t4)[:bin].should == 2
+    a(:t5)[:bin].should == 3
   end
 end

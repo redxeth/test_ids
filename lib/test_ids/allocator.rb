@@ -262,7 +262,7 @@ module TestIds
             if softbin.size > max_softbin_size
               fail "Softbin number (#{softbin}) overflows the test number algorithm (#{algo})"
             end
-            number = number.sub(/s+/, softbin.rjust(max_bin_size, '0'))
+            number = number.sub(/s+/, softbin.rjust(max_softbin_size, '0'))
           end
           if number =~ /(x+)/
             max_counter_size = Regexp.last_match(1).size

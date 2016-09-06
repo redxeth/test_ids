@@ -6,6 +6,8 @@ module TestIdsDev
       case dut.test_ids
       when 1
         TestIds.configure do |config|
+          # Example of testing remote repo
+          # config.repo = 'ssh://git@sw-stash.freescale.net/~r49409/test_ids_repo.git'
           config.bins.include << 3
           config.bins.include << (10..20)
           config.bins.exclude << 15

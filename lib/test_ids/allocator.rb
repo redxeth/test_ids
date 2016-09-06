@@ -71,8 +71,8 @@ module TestIds
 
     def store
       @store ||= begin
-        if config.repo && File.exist?(config.repo)
-          s = JSON.load(File.read(config.repo))
+        s = JSON.load(File.read(file)) if file && File.exist?(file)
+        if s
           @last_bin = s['pointers']['bin']
           @last_softbin = s['pointers']['softbin']
           @last_number = s['pointers']['number']
@@ -100,7 +100,7 @@ module TestIds
       unless TestIds.send(:testing?)
         if config.repo && @changes_made && config.on_completion != :discard
           save
-          publish if config.on_completion == :publish
+          git.publish if publish?
         end
       end
     end
@@ -110,7 +110,10 @@ module TestIds
     def file
       if config.repo
         @file ||= begin
-          if config.repo =~ /git/i
+          if git?
+            dir = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(config.repo).basename}"
+            FileUtils.mkdir_p(dir)
+            "#{dir}/store.json"
           else
             config.repo
           end
@@ -118,7 +121,28 @@ module TestIds
       end
     end
 
+    def git
+      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?)
+    end
+
+    def prepare
+      if git?
+        git # Pulls the latest repo
+        git.get_lock if publish?
+      end
+    end
+
     private
+
+    def publish?
+      git? && config.on_completion == :publish
+    end
+
+    def git?
+      if config.repo
+        !!(config.repo =~ /git/i)
+      end
+    end
 
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out

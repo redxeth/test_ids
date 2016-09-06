@@ -19,10 +19,6 @@ module TestIds
   end
 
   class <<self
-    def git
-      @git ||= Git.new
-    end
-
     def store
       unless @configuration
         fail 'The test ID generator has to be configured before you can start using it'
@@ -55,8 +51,8 @@ module TestIds
       end
       @configuration = Configuration.new
       yield @configuration
-      @configuration.freeze
-      TestIds.store # Kick off the store loading ASAP
+      @configuration.validate!
+      allocator.prepare
     end
 
     private

@@ -1,5 +1,5 @@
+require 'json'
 require 'git'
-require 'yaml'
 module TestIds
   # The Git driver is responsible for committing and fetching the
   # store from the central Git repository.
@@ -10,58 +10,70 @@ module TestIds
   #
   # An instance of this class is instantiated as TestIds.git
   class Git
-    def repo
-      @repo ||= begin
-        if File.exist?(local_store)
-          r = ::Git.open(local_store)
-          r.reset_hard
-          r.pull
-          r
-        else
-          ::Git.clone(remote_url, local_store)
+    attr_reader :repo, :local
+
+    def initialize(options)
+      unless File.exist?("#{options[:local]}/.git")
+        FileUtils.rm_rf(options[:local]) if File.exist?(options[:local])
+        FileUtils.mkdir_p(options[:local])
+        Dir.chdir options[:local] do
+          `git clone #{options[:remote]} .`
+          if !File.exist?('store.json') || !File.exist?('lock.json')
+            # Should really try to use the Git driver for this
+            exec 'touch store.json lock.json'
+            exec 'git add store.json lock.json'
+            exec 'git commit -m "Initial commit"'
+            exec 'git push'
+          end
         end
+      end
+      @local = options[:local]
+      @repo = ::Git.open(options[:local])
+      @repo.reset_hard
+      @repo.pull unless options[:no_pull]
+    end
+
+    def exec(cmd)
+      r = system(cmd)
+      unless r
+        fail "Something went wrong running command: #{cmd}"
       end
     end
 
-    # Writes the data to the given file and pushes to the remote repo
-    def write(path, data)
-      repo # Make sure we've refreshed recently
-      f = File.join(local_store, path)
-      File.write(f, data)
-      repo.add(f)
-      repo.commit("Updated #{path}")
+    def publish
+      write('store.json')
+      release_lock
+      repo.commit('Publishing latest store')
       repo.push('origin')
     end
 
-    # Reads the data from the given file, returns nil if not found
-    def read(path)
-      repo # Make sure we've refreshed recently
-      f = File.join(local_store, path)
-      File.read(f) if File.exist?(f)
-    end
-
-    def current_commit
-      repo.gcommit('HEAD').sha
+    # Writes the data to the given file and pushes to the remote repo
+    def write(path, data = nil)
+      f = File.join(local, path)
+      File.write(f, data) if data
+      repo.add(f)
     end
 
     def get_lock
       until available_to_lock?
         puts "Waiting for lock, currently locked by #{lock_user} (the lock will expire in less than #{lock_minutes_remaining} #{'minute'.pluralize(lock_minutes_remaining)} if not released before that)"
-        sleep 10
+        sleep 5
       end
       data = {
         'user'    => User.current.name,
-        'expires' => Time.now.utc + minutes(5)
-      }.to_yaml
-      write('lock', data)
+        'expires' => (Time.now + minutes(5)).to_f
+      }
+      write('lock.json', JSON.pretty_generate(data))
+      repo.commit('Obtaining lock')
+      repo.push('origin')
     end
 
     def release_lock
       data = {
         'user'    => nil,
         'expires' => nil
-      }.to_yaml
-      write('lock', data)
+      }
+      write('lock.json', JSON.pretty_generate(data))
     end
 
     def with_lock
@@ -74,14 +86,14 @@ module TestIds
     def available_to_lock?
       repo.pull
       if lock_content && lock_user && lock_user != User.current.name
-        Time.now > lock_expires
+        Time.now.to_f > lock_expires
       else
         true
       end
     end
 
     def lock_minutes_remaining
-      ((lock_expires - Time.now) / 60).ceil
+      ((lock_expires - Time.now.to_f) / 60).ceil
     end
 
     def lock_expires
@@ -93,21 +105,12 @@ module TestIds
     end
 
     def lock_content
-      if d = read('lock')
-        YAML.load(d)
-      end
+      f = File.join(local, 'lock.json')
+      JSON.load(File.read(f)) if File.exist?(f)
     end
 
     def minutes(number)
       number * 60
-    end
-
-    def remote_url
-      'ssh://git@sw-stash.freescale.net/~r49409/c402t_nvm_tester_testids.git'
-    end
-
-    def local_store
-      File.join(Origen.app.imports_dir, 'test_ids', 'db')
     end
   end
 end

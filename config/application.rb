@@ -11,7 +11,7 @@ class TestIdsApplication < Origen::Application
   config.name     = "test_ids"
   config.initials = "TestIds"
   # Change this to point to the revision control repository for this plugin
-  #config.rc_url   = "ssh://git@github.com:myaccount/test_ids.git" 
+  config.rc_url   = "ssh://git@github.com:Origen-SDK/test_ids.git"
   config.release_externally = true
 
   # To enable deployment of your documentation to a web server (via the 'origen web'

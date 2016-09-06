@@ -140,7 +140,7 @@ module TestIds
 
     def git?
       if config.repo
-        !!(config.repo =~ /git/i)
+        !!(config.repo =~ /\.git$/)
       end
     end
 

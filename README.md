@@ -2,7 +2,7 @@
 
 An Origen plugin to automatically assign and maintain test program bin and test numbers.
 
-This plugin integrates with the OrigenTesters  and allows you to assign a range of numbers, or a function, to generate bin,
+This plugin integrates with OrigenTesters and allows you to assign a range of numbers, or a function, to generate bin,
 softbin, and test numbers whenever you generate a test program with Origen.
 Unlike similar algorithms that may be implemented within an application, test_ids will maintain a record of the numbers assigned
 to each test so that they will stick even if the test flow order changes.
@@ -108,6 +108,7 @@ end
 config.numbers do |bin, softbin|
   (softbin * 10) + bin 
 end
+~~~
 
 ## Manual Allocation
 

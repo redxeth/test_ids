@@ -16,8 +16,8 @@ class TestIdsApplication < Origen::Application
 
   # To enable deployment of your documentation to a web server (via the 'origen web'
   # command) fill in these attributes.
-  #config.web_directory = "git@github.com:Origen-SDK/Origen-SDK.github.io.git/test_ids"
-  #config.web_domain = "http://origen-sdk.org/test_ids"
+  config.web_directory = "git@github.com:Origen-SDK/Origen-SDK.github.io.git/test_ids"
+  config.web_domain = "http://origen-sdk.org/test_ids"
 
   # When false Origen will be less strict about checking for some common coding errors,
   # it is recommended that you leave this to true for better feedback and easier debug.
@@ -63,22 +63,22 @@ class TestIdsApplication < Origen::Application
   #end
  
   # This will automatically deploy your documentation after every tag
-  #def after_release_email(tag, note, type, selector, options)
-  #  command = "origen web compile --remote --api"
-  #  Dir.chdir Origen.root do
-  #    system command
-  #  end
-  #end
+  def after_release_email(tag, note, type, selector, options)
+    command = "origen web compile --remote --api"
+    Dir.chdir Origen.root do
+      system command
+    end
+  end
 
   # Ensure that all tests pass before allowing a release to continue
-  #def validate_release
-  #  if !system("origen specs") || !system("origen examples")
-  #    puts "Sorry but you can't release with failing tests, please fix them and try again."
-  #    exit 1
-  #  else
-  #    puts "All tests passing, proceeding with release process!"
-  #  end
-  #end
+  def validate_release
+    if !system("origen specs") || !system("origen examples")
+      puts "Sorry but you can't release with failing tests, please fix them and try again."
+      exit 1
+    else
+      puts "All tests passing, proceeding with release process!"
+    end
+  end
 
   # To enabled source-less pattern generation create a class (for example PatternDispatcher)
   # to generate the pattern. This should return false if the requested pattern has been

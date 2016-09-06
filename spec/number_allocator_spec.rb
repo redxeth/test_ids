@@ -3,7 +3,7 @@ require "spec_helper"
 describe "The number allocator" do
 
   before :each do
-    TestIds.__reset__
+    TestIds.send(:reset)
     FileUtils.rm(f) if File.exist?(f)
   end
 
@@ -85,7 +85,7 @@ describe "The number allocator" do
     a(:t2, number: 3)[:number].should == 3
     
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.numbers.include << (1..4)
       config.repo = f
@@ -104,7 +104,7 @@ describe "The number allocator" do
     a(:t3, number: 2)[:number].should == 2
     
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.numbers.include << (1..4)
       config.repo = f
@@ -126,7 +126,7 @@ describe "The number allocator" do
     a(:t4)[:number].should == 1
     a(:t5)[:number].should == 2
 
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.numbers.include << (1..3)
       config.repo = f
@@ -138,7 +138,7 @@ describe "The number allocator" do
     a(:t4)[:number].should == 2
 
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.numbers.include << (1..3)
       config.repo = f

@@ -3,7 +3,7 @@ require "spec_helper"
 describe "The softbin allocator" do
 
   before :each do
-    TestIds.__reset__
+    TestIds.send(:reset)
     FileUtils.rm(f) if File.exist?(f)
   end
 
@@ -85,7 +85,7 @@ describe "The softbin allocator" do
     a(:t2, softbin: 3)[:softbin].should == 3
     
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.softbins.include << (1..4)
       config.repo = f
@@ -104,7 +104,7 @@ describe "The softbin allocator" do
     a(:t3, softbin: 2)[:softbin].should == 2
     
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.softbins.include << (1..4)
       config.repo = f
@@ -126,7 +126,7 @@ describe "The softbin allocator" do
     a(:t4)[:softbin].should == 1
     a(:t5)[:softbin].should == 2
 
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.softbins.include << (1..3)
       config.repo = f
@@ -138,7 +138,7 @@ describe "The softbin allocator" do
     a(:t4)[:softbin].should == 2
 
     TestIds.allocator.save
-    TestIds.__reset__
+    TestIds.send(:reset)
     TestIds.configure do |config|
       config.softbins.include << (1..3)
       config.repo = f

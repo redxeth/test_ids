@@ -25,6 +25,7 @@ require "#{Origen.top}/spec/format/origen_formatter"
 require "byebug"
 require 'pry'
 require 'test_ids'
+TestIds.send(:testing=, true) # Stop it trying to save the database automatically
 
 def load_target(target="default")
   Origen.target.switch_to target

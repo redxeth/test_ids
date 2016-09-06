@@ -1,10 +1,20 @@
 module TestIds
   class Allocator
+    include Origen::Callbacks
     attr_reader :config
+
+    def initialize
+      @@allocators ||= 0
+      @@allocators += 1
+      if @@allocators > 1 && !TestIds.send(:testing?)
+        fail 'TestIds::Allocators is a singleton, there can be only one'
+      end
+    end
 
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
+      @changes_made = true
       clean(options)
       @callbacks = []
       name = extract_test_name(instance, options)
@@ -79,10 +89,32 @@ module TestIds
 
     # Saves the current allocator state to the repository
     def save
-      if config.repo
-        p = Pathname.new(config.repo)
+      if file
+        p = Pathname.new(file)
         FileUtils.mkdir_p(p.dirname)
         File.open(p, 'w') { |f| f.puts JSON.pretty_generate(store) }
+      end
+    end
+
+    def on_origen_shutdown
+      unless TestIds.send(:testing?)
+        if config.repo && @changes_made && config.on_completion != :discard
+          save
+          publish if config.on_completion == :publish
+        end
+      end
+    end
+
+    # Returns a path to the file that will be used to store the allocated bins/numbers.
+    # If config.repo has not been set it returns nil.
+    def file
+      if config.repo
+        @file ||= begin
+          if config.repo =~ /git/i
+          else
+            config.repo
+          end
+        end
       end
     end
 

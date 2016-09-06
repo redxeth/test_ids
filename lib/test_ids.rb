@@ -59,13 +59,22 @@ module TestIds
       TestIds.store # Kick off the store loading ASAP
     end
 
-    # @api private
+    private
+
     # For testing, clears all instances including the configuration
-    def __reset__
+    def reset
       @git = nil
       @store = nil
       @allocator = nil
       @configuration = nil
+    end
+
+    def testing=(val)
+      @testing = val
+    end
+
+    def testing?
+      !!@testing
     end
   end
 end

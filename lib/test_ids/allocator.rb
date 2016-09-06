@@ -118,18 +118,44 @@ module TestIds
 
     def allocate_softbin(bin)
       return nil if config.softbins.empty?
-      if algo = config.softbins.algorithm
-        if algo.to_s =~ /^[b\d]+$/
+      if config.softbins.algorithm
+        algo = config.softbins.algorithm.to_s.downcase
+        if algo.to_s =~ /^[b\dx]+$/
           number = algo.to_s
           bin = bin.to_s
           if number =~ /(b+)/
-            if bin.size > Regexp.last_match(1).size
+            max_bin_size = Regexp.last_match(1).size
+            if bin.size > max_bin_size
               fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
             end
-            number = number.sub(/b+/, bin)
+            number = number.sub(/b+/, bin.rjust(max_bin_size, '0'))
+          end
+          if number =~ /(x+)/
+            max_counter_size = Regexp.last_match(1).size
+            refs = store['references']['softbin']
+            i = 0
+            possible = []
+            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+            possible << proposal
+            while refs[proposal] && i.to_s.size <= max_counter_size
+              i += 1
+              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+              possible << proposal
+            end
+            # Overflowed, need to go search for the oldest duplicate now
+            if i.to_s.size > max_counter_size
+              i = 0
+              # Not the most efficient search algorithm, but this should be hit very rarely
+              # and even then only to generate the bin the first time around
+              p = refs.sort_by { |bin, last_used| last_used }.find do |bin, last_used|
+                possible.include?(bin)
+              end
+              proposal = p[0]
+            end
+            number = proposal
           end
         else
-          fail "Unknown softbin algorithm: #{algo} (note that references to bin numbers must be lower cased 'b')"
+          fail "Unknown softbin algorithm: #{algo}"
         end
         number.to_i
       elsif callback = config.softbins.callback
@@ -162,26 +188,53 @@ module TestIds
 
     def allocate_number(bin, softbin)
       return nil if config.numbers.empty?
-      if algo = config.numbers.algorithm
-        if algo.to_s =~ /^[bs\d]+$/
+      if config.numbers.algorithm
+        algo = config.numbers.algorithm.to_s.downcase
+        if algo.to_s =~ /^[bs\dx]+$/
           number = algo.to_s
           bin = bin.to_s
           if number =~ /(b+)/
-            if bin.size > Regexp.last_match(1).size
+            max_bin_size = Regexp.last_match(1).size
+            if bin.size > max_bin_size
               fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
             end
-            number = number.sub(/b+/, bin)
+            number = number.sub(/b+/, bin.rjust(max_bin_size, '0'))
           end
           softbin = softbin.to_s
           if number =~ /(s+)/
-            if softbin.size > Regexp.last_match(1).size
+            max_softbin_size = Regexp.last_match(1).size
+            if softbin.size > max_softbin_size
               fail "Softbin number (#{softbin}) overflows the test number algorithm (#{algo})"
             end
-            number = number.sub(/s+/, softbin)
+            number = number.sub(/s+/, softbin.rjust(max_bin_size, '0'))
+          end
+          if number =~ /(x+)/
+            max_counter_size = Regexp.last_match(1).size
+            refs = store['references']['number']
+            i = 0
+            possible = []
+            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+            possible << proposal
+            while refs[proposal] && i.to_s.size <= max_counter_size
+              i += 1
+              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+              possible << proposal
+            end
+            # Overflowed, need to go search for the oldest duplicate now
+            if i.to_s.size > max_counter_size
+              i = 0
+              # Not the most efficient search algorithm, but this should be hit very rarely
+              # and even then only to generate the bin the first time around
+              p = refs.sort_by { |bin, last_used| last_used }.find do |bin, last_used|
+                possible.include?(bin)
+              end
+              proposal = p[0]
+            end
+            number = proposal
           end
           number.to_i
         else
-          fail "Unknown test number algorithm: #{algo} (note that references to bin and softbin numbers must be lower cased 'b' and 's')"
+          fail "Unknown test number algorithm: #{algo}"
         end
       elsif callback = config.numbers.callback
         callback.call(bin, softbin)

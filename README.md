@@ -118,8 +118,7 @@ Any test can be manually assigned to either of these ID types and that will take
 func :my_functional_test, bin: 3, softbin: 100, number: 200100
 ~~~
 
-The given numbers will be then be reserved and excluded from automatic assignment if they are output from the automatic assignment
-process.
+The given numbers will be then be reserved and excluded from automatic assignment.
 
 In the case where the number had already been automatically given out to a test earlier in the flow, it will be
 reclaimed the next time the program generator is run.
@@ -146,10 +145,10 @@ func :my_functional_test, index: 1  # Will be treated like a different test and 
 
 ## Storage
 
-The main benefit of this plugin is to get consitent number assignements accross different invocations of the program
+The main benefit of this plugin is to get consistent number assignments accross different invocations of the program
 generator, and for that to work it is necessary for the database to be stored somewhere.
 The database is a single file that is written in JSON format to make it human readable in case there is ever a need to
-manually modify it for some reason.
+manually modify it.
 
 The recommended configuration is to use a dedicated Git repository to store this file. This means that it will be
 shared by different users of your application and they will all see a consistent common view of the number
@@ -178,11 +177,11 @@ is also supported.
 config.repo =  "#{Origen.root}/tmp/store.json"
 ~~~
 
-You would be resonsible then for checking this in and ensuring consistency between users.
+You are then resonsible for checking this in and ensuring consistency between users.
 
 If you use this approach you should make sure that your application's release process generates all versions of
 your test program so that all possible tests are assigned bins. Basically you don't want your users to be
-generating new assignments when they invoke your application.
+generating new assignments when they invoke your application in production.
 
 ## Notes on Duplicates
 

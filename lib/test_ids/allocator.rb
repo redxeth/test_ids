@@ -6,9 +6,11 @@ module TestIds
     def initialize
       @@allocators ||= 0
       @@allocators += 1
-      if @@allocators > 1 && !TestIds.send(:testing?)
-        fail 'TestIds::Allocators is a singleton, there can be only one'
-      end
+      
+      @id = TestIds.config.id
+      # if @@allocators > 1 && !TestIds.send(:testing?)
+      #   fail 'TestIds::Allocators is a singleton, there can be only one'
+      # end
     end
 
     # Main method to inject generated bin and test numbers, the given
@@ -122,7 +124,7 @@ module TestIds
     end
 
     def git
-      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?)
+      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?, id: id)
     end
 
     def prepare
@@ -354,6 +356,10 @@ module TestIds
       options[:name] ||= options.delete(:tname) || options.delete(:testname) ||
                          options.delete(:test_name)
       options[:index] ||= options.delete(:ix)
+    end
+    
+    def id
+      @id
     end
   end
 end

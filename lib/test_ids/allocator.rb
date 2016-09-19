@@ -111,7 +111,7 @@ module TestIds
           if git?
             dir = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(config.repo).basename}"
             FileUtils.mkdir_p(dir)
-            "#{dir}/store.json"
+            "#{dir}/store#{file_id}.json"
           else
             config.repo
           end
@@ -130,6 +130,18 @@ module TestIds
       end
     end
 
+    def id
+      @id
+    end
+
+    def file_id
+      if id == :not_specified
+        ''
+      else
+        '_' + id.to_s.downcase
+      end
+    end
+    
     private
 
     def publish?

@@ -19,7 +19,7 @@ module TestIds
   end
 
   class <<self
-    
+
     def store
       unless @configuration
         fail 'The test ID generator has to be configured before you can start using it'
@@ -78,8 +78,7 @@ module TestIds
         @configuration[_id] ||= Configuration.new(_id)
         set_current_configuration(_id)
       else
-        Origen.log.warn "Warning: You are attempting to configure an existing configuration: '#{_id}'"
-        Origen.log.warn "         Skipping re-configure, but setting '#{_id}' to current"
+        # Configuration already exists, skip re-configure, but set configuration to current
         set_current_configuration(_id)
         return      
       end
@@ -103,6 +102,10 @@ module TestIds
         fail "Configuration '#{_id}' does not exist"
       end
       @current_configuration = @configuration[_id]
+    end
+    
+    def empty?
+      @configuration.nil?
     end
     
     private

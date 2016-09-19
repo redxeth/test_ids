@@ -4,13 +4,9 @@ module TestIds
     attr_reader :config
 
     def initialize
-      @@allocators ||= 0
-      @@allocators += 1
-      
+      # keep 'id' value local to the allocator for easy identification
+      #   (matches with the corresponding configuration)
       @id = TestIds.config.id
-      # if @@allocators > 1 && !TestIds.send(:testing?)
-      #   fail 'TestIds::Allocators is a singleton, there can be only one'
-      # end
     end
 
     # Main method to inject generated bin and test numbers, the given

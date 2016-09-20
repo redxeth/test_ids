@@ -63,7 +63,7 @@ Certain numbers within the include allocation can be excluded like this:
 
 ~~~ruby
 config.TYPE.exclude << 150         # This is already assigned to something else
-config.TYPE.exculde << (190..195)  # A range is also acceptable
+config.TYPE.exclude << (190..195)  # A range is also acceptable
 ~~~
 
 ### Assigning a Template

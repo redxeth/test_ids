@@ -4,21 +4,14 @@ describe "The multi-configurator" do
 
   before :each do
     TestIds.send(:reset)
-    configs.each do |cfg|
-      FileUtils.rm(f(cfg)) if File.exist?(f(cfg))
-    end
   end
 
   def configs
     [:p1,:p2,:f1]
   end
   
-  def f(config)
-    "#{Origen.root}/tmp/store_#{config}.json"
-  end
-
   def a(name, options = {})
-    TestIds.allocator.allocate(name, options)
+    TestIds.current_configuration.allocator.allocate(name, options)
     options
   end
 
@@ -29,7 +22,6 @@ describe "The multi-configurator" do
       TestIds.configure id: cfg do |config|
         config.softbins = i
         config.numbers = :sx0
-        config.repo = nil
       end
       a(:t1)[:number].should == i * 100
       a(:t2)[:number].should == i * 100 + 10
@@ -44,7 +36,6 @@ describe "The multi-configurator" do
       TestIds.configure id: cfg do |config|
         config.softbins = i
         config.numbers = :sx0
-        config.repo = nil
       end
       a(:t1)[:number].should == i * 100
     end
@@ -57,7 +48,9 @@ describe "The multi-configurator" do
 
     a(:t2)[:number].should == 1 * 100 + 10
     
-    TestIds.set_current_configuration(configs[1])
+    TestIds.configure configs[1] do |config|
+      # do nothing
+    end
 
     a(:t2)[:number].should == 2 * 100 + 10
     

@@ -19,103 +19,134 @@ module TestIds
   end
 
   class <<self
-
-    def store
-      unless @configuration
-        fail 'The test ID generator has to be configured before you can start using it'
-      end
-
-      # Note: TestIds will keep a hash of stores
-      #
-      @store = {} if @store.nil?               # Empty has if this is first store object
-      
-      # Return existing or create new store object in store hash
-      @store[config_id] ||= Store.new(config_id)
+    def current_configuration
+      configuration(@configuration_id)
     end
 
-    def allocator
-      unless @configuration
-        fail 'The test ID generator has to be configured before you can start using it'
-      end
-
-      # Note: TestIds will keep a hash of allocators
-      #
-      @allocator = {} if @allocator.nil?       # Empty has if this is first allocator object
-
-      # Return existing or create new store object in allocator hash
-      @allocator[config_id] ||= Allocator.new(config_id)     
-    end
-
-    # Returns the id of the current configuration in-use, use this to access store and allocator
-    def config_id
-      current_configuration.id
-    end
-    
-    def configuration
-      if block_given?
-        configure do |config|
-          yield config
-        end
-      else
-        @configuration[config_id] ||
-          fail('You have to create the configuration first before you can access it')
-      end
+    def configuration(id)
+      return @configuration[id] if @configuration && @configuration[id]
+      fail('You have to create the configuration first before you can access it')
     end
     alias_method :config, :configuration
 
-    def configure(options = {})
-      # Don't force 'id' usage
-      _id = options[:id] || :not_specified
+    def configure(id = nil, options = {})
+      id, options = nil, id if id.is_a?(Hash)
 
-      # Create empty hash if first configuration
-      @configuration = {} if @configuration.nil?
+      @configuration_id = id || options[:id] || :not_specified
 
-      # Note: TestIds will keep a hash of configurations with the 'id' as the key
-      #
-      # If this configuration doesn't exist, create new configuration (hash item)
-      # Else, shoot user a warning and set configuration as current (but don't allow bin/tnum changes)
-      if @configuration[_id].nil?
-        @configuration[_id] ||= Configuration.new(_id)
-        set_current_configuration(_id)
-      else
-        # Configuration already exists, skip re-configure, but set configuration to current
-        set_current_configuration(_id)
-        return      
-      end
-      yield @configuration[_id]
-      @configuration[_id].validate!
-      allocator.prepare
+      @configuration ||= {}
+
+      return if @configuration[@configuration_id]
+
+      @configuration[@configuration_id] = Configuration.new(@configuration_id)
+
+      config = @configuration[@configuration_id]
+
+      yield config
+
+      config.validate!
+
+      initialize_git
     end
 
-    def current_configuration
-      unless @configuration
-        fail 'The test ID generator has to be configured before you can start using it'
-      end
-      @current_configuration
+    def configured?
+      !!@configuration_id
     end
 
-    def set_current_configuration(_id)
-      unless @configuration
-        fail 'The test ID generator has to be configured before you can start using it'
+    def initialize_git
+      @git_initialized ||= begin
+        if repo
+          @git = Git.new(local: git_database_dir, remote: repo)
+          git.get_lock if on_completion == :save
+        end
+        true
       end
-      if @configuration[_id].nil?
-        fail "Configuration '#{_id}' does not exist"
+    end
+
+    # Returns a full path to the database file for the given id, returns nil if
+    # git storage has not been enabled
+    def database_file(id)
+      if repo && on_completion == :save
+        if id == :not_specified
+          f = 'store.json'
+        else
+          f = "store_#{id.to_s.downcase}.json"
+        end
+        "#{git_database_dir}/#{f}"
       end
-      @current_configuration = @configuration[_id]
     end
-    
-    def empty?
-      @configuration.nil?
+
+    def git_database_dir
+      @git_database_dir ||= begin
+        d = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(repo).basename}"
+        FileUtils.mkdir_p(d)
+        d
+      end
     end
-    
+
+    def git
+      @git
+    end
+
+    def repo=(val)
+      return if @repo && @repo == val
+      if @repo && @repo != val
+        fail 'You can only use a single test ids repository per program generation run, one per application is recommended'
+      end
+      if @configuration
+        fail 'TestIds.repo must be set before creating the first configuration'
+      end
+      @repo = val
+    end
+
+    def repo
+      @repo
+    end
+
+    # Returns what should be done with the database for the given configuration
+    # at the end, :save (the default) or :discard.
+    #
+    # If a repo has not been specified, then this attribute has no effect and the
+    # data will always be discarded.
+    def on_completion
+      @on_completion || :save
+    end
+
+    def on_completion=(val)
+      return if @on_completion && @on_completion == val
+      if @on_completion && @on_completion != val
+        fail 'You can only use a single setting for on_completion per program generation run'
+      end
+      if @configuration
+        fail 'TestIds.on_completion must be set before creating the first configuration'
+      end
+      unless %w(save discard).include?(val.to_s)
+        fail 'on_completion must be set to either :save or :discard'
+      end
+      @on_completion = val.to_sym
+    end
+
     private
+
+    def on_origen_shutdown
+      unless testing?
+        if repo && on_completion == :save
+          @configuration.each do |id, config|
+            config.allocator.save
+          end
+          git.publish
+        end
+      end
+    end
 
     # For testing, clears all instances including the configuration
     def reset
       @git = nil
-      @store = nil
-      @allocator = nil
       @configuration = nil
+    end
+
+    def clear_configuration_id
+      @configuration_id = nil
     end
 
     def testing=(val)

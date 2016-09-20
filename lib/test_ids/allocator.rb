@@ -1,18 +1,19 @@
 module TestIds
+  # The allocator is responsible for assigning new numbers and keeping a record of
+  # existing assignments.
+  #
+  # There is one allocator instance per configuration, and each has its own database
+  # file.
   class Allocator
-    include Origen::Callbacks
     attr_reader :config
 
-    def initialize
-      # keep 'id' value local to the allocator for easy identification
-      #   (matches with the corresponding configuration)
-      @id = TestIds.config.id
+    def initialize(configuration)
+      @config = configuration
     end
 
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
-      @changes_made = true
       clean(options)
       @callbacks = []
       name = extract_test_name(instance, options)
@@ -63,10 +64,6 @@ module TestIds
       options
     end
 
-    def config
-      TestIds.config
-    end
-
     def store
       @store ||= begin
         s = JSON.load(File.read(file)) if file && File.exist?(file)
@@ -94,54 +91,16 @@ module TestIds
       end
     end
 
-    def on_origen_shutdown
-      unless TestIds.send(:testing?)
-        if config.repo && @changes_made && config.on_completion != :discard
-          save
-          git.publish if publish?
-        end
-      end
-    end
-
-    # Returns a path to the file that will be used to store the allocated bins/numbers.
-    # If config.repo has not been set it returns nil.
+    # Returns a path to the file that will be used to store the allocated bins/numbers,
+    # returns nil if remote storage not enabled
     def file
-      if config.repo
-        @file ||= begin
-          if git?
-            dir = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(config.repo).basename}"
-            FileUtils.mkdir_p(dir)
-            "#{dir}/store#{file_id}.json"
-          else
-            config.repo
-          end
-        end
-      end
-    end
-
-    def git
-      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?, id: id)
-    end
-
-    def prepare
-      if git?
-        git # Pulls the latest repo
-        git.get_lock if publish?
-      end
+      TestIds.database_file(id)
     end
 
     def id
-      @id
+      config.id
     end
 
-    def file_id
-      if id == :not_specified
-        ''
-      else
-        '_' + id.to_s.downcase
-      end
-    end
-    
     private
 
     def publish?
@@ -364,10 +323,6 @@ module TestIds
       options[:name] ||= options.delete(:tname) || options.delete(:testname) ||
                          options.delete(:test_name)
       options[:index] ||= options.delete(:ix)
-    end
-    
-    def id
-      @id
     end
   end
 end

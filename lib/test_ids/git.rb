@@ -13,26 +13,15 @@ module TestIds
     attr_reader :repo, :local
 
     def initialize(options)
-      # Create a file name suffix based on config.id for multiple store_xxx.json and lock_xxx.json
-      if options[:id].nil?
-        @cfg = ''
-      else
-        if options[:id] == :not_specified
-          @cfg = ''
-        else
-          @cfg = '_' + options[:id].to_s.downcase
-        end
-      end
-      
       unless File.exist?("#{options[:local]}/.git")
         FileUtils.rm_rf(options[:local]) if File.exist?(options[:local])
         FileUtils.mkdir_p(options[:local])
         Dir.chdir options[:local] do
           `git clone #{options[:remote]} .`
-          if !File.exist?("store#{cfg}.json") || !File.exist?("lock#{cfg}.json")
+          unless File.exist?('lock.json')
             # Should really try to use the Git driver for this
-            exec "touch store#{cfg}.json lock#{cfg}.json"
-            exec "git add store#{cfg}.json lock#{cfg}.json"
+            exec 'touch lock.json'
+            exec 'git add lock.json'
             exec 'git commit -m "Initial commit"'
             exec 'git push'
           end
@@ -40,14 +29,12 @@ module TestIds
       end
       @local = options[:local]
       @repo = ::Git.open(options[:local])
+      # Get rid of any local edits coming in here, this is only called once at the start
+      # of the program generation run.
+      # No need to pull latest as that will be done when we obtain a lock.
       @repo.reset_hard
-      @repo.pull unless options[:no_pull]
     end
 
-    def cfg
-      @cfg
-    end
-    
     def exec(cmd)
       r = system(cmd)
       unless r
@@ -56,10 +43,12 @@ module TestIds
     end
 
     def publish
-      write("store#{cfg}.json")
-      release_lock
-      repo.commit('Publishing latest store')
-      repo.push('origin')
+      Origen.profile 'Publishing the test IDs store' do
+        release_lock
+        repo.add  # Checkin everything
+        repo.commit('Publishing latest store')
+        repo.push('origin')
+      end
     end
 
     # Writes the data to the given file and pushes to the remote repo
@@ -70,17 +59,21 @@ module TestIds
     end
 
     def get_lock
-      until available_to_lock?
-        puts "Waiting for lock, currently locked by #{lock_user} (the lock will expire in less than #{lock_minutes_remaining} #{'minute'.pluralize(lock_minutes_remaining)} if not released before that)"
-        sleep 5
+      return if @lock_open
+      Origen.profile 'Obtaining test IDs lock' do
+        until available_to_lock?
+          Origen.log "Waiting for lock, currently locked by #{lock_user} (the lock will expire in less than #{lock_minutes_remaining} #{'minute'.pluralize(lock_minutes_remaining)} if not released before that)"
+          sleep 5
+        end
+        data = {
+          'user'    => User.current.name,
+          'expires' => (Time.now + minutes(5)).to_f
+        }
+        write('lock.json', JSON.pretty_generate(data))
+        repo.commit('Obtaining lock')
+        repo.push('origin')
       end
-      data = {
-        'user'    => User.current.name,
-        'expires' => (Time.now + minutes(5)).to_f
-      }
-      write("lock#{cfg}.json", JSON.pretty_generate(data))
-      repo.commit('Obtaining lock')
-      repo.push('origin')
+      @lock_open = true
     end
 
     def release_lock
@@ -88,23 +81,20 @@ module TestIds
         'user'    => nil,
         'expires' => nil
       }
-      write("lock#{cfg}.json", JSON.pretty_generate(data))
-    end
-
-    def with_lock
-      get_lock
-      yield
-    ensure
-      release_lock
+      write('lock.json', JSON.pretty_generate(data))
     end
 
     def available_to_lock?
-      repo.pull
-      if lock_content && lock_user && lock_user != User.current.name
-        Time.now.to_f > lock_expires
-      else
-        true
+      result = false
+      Origen.profile 'Checking for lock' do
+        repo.pull
+        if lock_content && lock_user && lock_user != User.current.name
+          result = Time.now.to_f > lock_expires
+        else
+          result = true
+        end
       end
+      result
     end
 
     def lock_minutes_remaining
@@ -120,13 +110,12 @@ module TestIds
     end
 
     def lock_content
-      f = File.join(local, "lock#{cfg}.json")
+      f = File.join(local, 'lock.json')
       JSON.load(File.read(f)) if File.exist?(f)
     end
 
     def minutes(number)
       number * 60
     end
-    
   end
 end

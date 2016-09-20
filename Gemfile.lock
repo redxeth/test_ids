@@ -159,6 +159,3 @@ DEPENDENCIES
   coveralls
   origen_doc_helpers
   test_ids!
-
-BUNDLED WITH
-   1.12.5

@@ -31,28 +31,17 @@ module TestIds
       end
     end
 
-    attr_accessor :repo
-    attr_reader :on_completion
+    attr_reader :allocator
 
-    def on_completion
-      @on_completion || :publish
-    end
-
-    def on_completion=(val)
-      unless %w(publish save discard).include?(val.to_s)
-        fail 'on_completion must be set to one of: :publish, :save, :discard'
-      end
-      @on_completion = val.to_sym
-    end
-
-    def initialize(_id)
-      @id = _id
+    def initialize(id)
+      @id = id
+      @allocator = Allocator.new(self)
     end
 
     def id
       @id
     end
-    
+
     def bins
       @bins ||= Item.new
     end

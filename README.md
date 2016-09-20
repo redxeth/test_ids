@@ -25,6 +25,8 @@ module MyApp
     include OrigenTesters::ProgramGenerators
     
     def initialize(options = {})
+      TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+      
       TestIds.configure do |config|
         config.bins.include << (100..500)
         config.softbins = :bbb000
@@ -150,38 +152,73 @@ generator, and for that to work it is necessary for the database to be stored so
 The database is a single file that is written in JSON format to make it human readable in case there is ever a need to
 manually modify it.
 
-The recommended configuration is to use a dedicated Git repository to store this file. This means that it will be
-shared by different users of your application and they will all see a consistent common view of the number
+A dedicated Git repository is used to store this file, this means that it will be
+shared by different users of your application and they will all see a consistent view of the number
 allocations.
 
 To enable Git storage create a new empty repository somewhere. This repository should be dedicated for use by this
 plugin and not used for anything else.
 **It must be writable by all users of your application.**
 
-Once you have the repository configure test_ids to use it like this:
+Once you have the repository, configure test_ids to use it like this:
 
 ~~~ruby
-config.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+# This must be done before configuring
+TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+
+TestIds.configure do |config|
+  #...
 ~~~
 
-The repository will then be kept up to date on every program generator invocation which should add < 1 second to
-the execution time.
+The repository will then be kept up to date on every program generator invocation.
 A locking system will be automatically managed for you to prevent concurrent updates from multiple users.
 
-### File Based Storage
-
-If for some reason you don't want to go with the above approach, the use of a file within your application
-is also supported.
+Sometimes during development you may want to temporarily inhibit storage in the repo, just comment out or
+branch around the repo definition to achieve that:
 
 ~~~ruby
-config.repo =  "#{Origen.root}/tmp/store.json"
+# Only update the database when running in production mode
+if Origen.mode.production?
+  TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+end
 ~~~
 
-You are then resonsible for checking this in and ensuring consistency between users.
+### Multiple Configurations
 
-If you use this approach you should make sure that your application's release process generates all versions of
-your test program so that all possible tests are assigned bins. Basically you don't want your users to be
-generating new assignments when they invoke your application in production.
+It may be the case that you want a different configuration for wafer test vs. final test for example. Multiple
+independent configurations can be created by supplying an identifier, like this:
+
+~~~ruby
+def initialize(options = {})
+  TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+  
+  if options[:environment] == :probe
+    TestIds.configure :wafer_test do |config|
+      config.bins.include << (100..500)
+      config.softbins = :bbb000
+      config.numbers do |bin, softbin|
+        (softbin * 10) + bin 
+      end
+    end
+  else
+    TestIds.configure :final_test do |config|
+      config.bins.include << (1000..2000)
+      config.softbins = :bbb000
+      config.numbers do |bin, softbin|
+        (softbin * 10) + bin 
+      end
+    end
+  end
+end
+~~~
+
+In the above example the environment option would be passed in from the top-level flow, like this:
+
+~~~ruby
+Flow.create environment: :probe do
+  # ...
+end
+~~~
 
 ## Notes on Duplicates
 

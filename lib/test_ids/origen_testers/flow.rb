@@ -5,7 +5,7 @@ module OrigenTesters
     # test numbers
     alias_method :_orig_test, :test
     def test(instance, options = {})
-      unless TestIds.config.empty?
+      unless TestIds.empty?
         TestIds.allocator.allocate(instance, options)
       end
       _orig_test(instance, options)

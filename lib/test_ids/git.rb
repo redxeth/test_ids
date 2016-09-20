@@ -13,15 +13,26 @@ module TestIds
     attr_reader :repo, :local
 
     def initialize(options)
+      # Create a file name suffix based on config.id for multiple store_xxx.json and lock_xxx.json
+      if options[:id].nil?
+        @cfg = ''
+      else
+        if options[:id] == :not_specified
+          @cfg = ''
+        else
+          @cfg = '_' + options[:id].to_s.downcase
+        end
+      end
+      
       unless File.exist?("#{options[:local]}/.git")
         FileUtils.rm_rf(options[:local]) if File.exist?(options[:local])
         FileUtils.mkdir_p(options[:local])
         Dir.chdir options[:local] do
           `git clone #{options[:remote]} .`
-          if !File.exist?('store.json') || !File.exist?('lock.json')
+          if !File.exist?("store#{cfg}.json") || !File.exist?("lock#{cfg}.json")
             # Should really try to use the Git driver for this
-            exec 'touch store.json lock.json'
-            exec 'git add store.json lock.json'
+            exec "touch store#{cfg}.json lock#{cfg}.json"
+            exec "git add store#{cfg}.json lock#{cfg}.json"
             exec 'git commit -m "Initial commit"'
             exec 'git push'
           end
@@ -33,6 +44,10 @@ module TestIds
       @repo.pull unless options[:no_pull]
     end
 
+    def cfg
+      @cfg
+    end
+    
     def exec(cmd)
       r = system(cmd)
       unless r
@@ -41,7 +56,7 @@ module TestIds
     end
 
     def publish
-      write('store.json')
+      write("store#{cfg}.json")
       release_lock
       repo.commit('Publishing latest store')
       repo.push('origin')
@@ -63,7 +78,7 @@ module TestIds
         'user'    => User.current.name,
         'expires' => (Time.now + minutes(5)).to_f
       }
-      write('lock.json', JSON.pretty_generate(data))
+      write("lock#{cfg}.json", JSON.pretty_generate(data))
       repo.commit('Obtaining lock')
       repo.push('origin')
     end
@@ -73,7 +88,7 @@ module TestIds
         'user'    => nil,
         'expires' => nil
       }
-      write('lock.json', JSON.pretty_generate(data))
+      write("lock#{cfg}.json", JSON.pretty_generate(data))
     end
 
     def with_lock
@@ -105,12 +120,13 @@ module TestIds
     end
 
     def lock_content
-      f = File.join(local, 'lock.json')
+      f = File.join(local, "lock#{cfg}.json")
       JSON.load(File.read(f)) if File.exist?(f)
     end
 
     def minutes(number)
       number * 60
     end
+    
   end
 end

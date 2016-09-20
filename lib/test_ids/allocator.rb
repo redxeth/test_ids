@@ -4,11 +4,9 @@ module TestIds
     attr_reader :config
 
     def initialize
-      @@allocators ||= 0
-      @@allocators += 1
-      if @@allocators > 1 && !TestIds.send(:testing?)
-        fail 'TestIds::Allocators is a singleton, there can be only one'
-      end
+      # keep 'id' value local to the allocator for easy identification
+      #   (matches with the corresponding configuration)
+      @id = TestIds.config.id
     end
 
     # Main method to inject generated bin and test numbers, the given
@@ -113,7 +111,7 @@ module TestIds
           if git?
             dir = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(config.repo).basename}"
             FileUtils.mkdir_p(dir)
-            "#{dir}/store.json"
+            "#{dir}/store#{file_id}.json"
           else
             config.repo
           end
@@ -122,7 +120,7 @@ module TestIds
     end
 
     def git
-      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?)
+      @git ||= Git.new(local: Pathname.new(file).dirname, remote: config.repo, no_pull: publish?, id: id)
     end
 
     def prepare
@@ -132,6 +130,18 @@ module TestIds
       end
     end
 
+    def id
+      @id
+    end
+
+    def file_id
+      if id == :not_specified
+        ''
+      else
+        '_' + id.to_s.downcase
+      end
+    end
+    
     private
 
     def publish?
@@ -354,6 +364,10 @@ module TestIds
       options[:name] ||= options.delete(:tname) || options.delete(:testname) ||
                          options.delete(:test_name)
       options[:index] ||= options.delete(:ix)
+    end
+    
+    def id
+      @id
     end
   end
 end

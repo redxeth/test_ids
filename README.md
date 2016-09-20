@@ -28,7 +28,7 @@ module MyApp
       TestIds.configure do |config|
         config.bins.include << (100..500)
         config.softbins = :bbb000
-        config.testnumbers do |bin, softbin|
+        config.numbers do |bin, softbin|
           (softbin * 10) + bin 
         end
       end

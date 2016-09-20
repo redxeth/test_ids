@@ -45,6 +45,14 @@ module TestIds
       @on_completion = val.to_sym
     end
 
+    def initialize(_id)
+      @id = _id
+    end
+
+    def id
+      @id
+    end
+    
     def bins
       @bins ||= Item.new
     end

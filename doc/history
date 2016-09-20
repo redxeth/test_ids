@@ -1,3 +1,15 @@
+<a class="anchor release_tag" name="v0_3_0"></a>
+<h1><a href="#v0_3_0">Tag: v0.3.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 20-Sep-2016 12:13PM
+
+
+* Added support for multiple configurations (Ronnie Lajaunie)
+* Removed option for file-based storage, its Git repo or nothing now
+* Various but faces and minor API changes, see updated documentation
+
 <a class="anchor release_tag" name="v0_2_1"></a>
 <h1><a href="#v0_2_1">Tag: v0.2.1</a></h1>
 

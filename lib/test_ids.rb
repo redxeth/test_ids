@@ -57,7 +57,7 @@ module TestIds
       @git_initialized ||= begin
         if repo
           @git = Git.new(local: git_database_dir, remote: repo)
-          git.get_lock if on_completion == :save
+          git.get_lock if publish?
         end
         true
       end
@@ -66,7 +66,7 @@ module TestIds
     # Returns a full path to the database file for the given id, returns nil if
     # git storage has not been enabled
     def database_file(id)
-      if repo && on_completion == :save
+      if repo
         if id == :not_specified
           f = 'store.json'
         else
@@ -103,38 +103,33 @@ module TestIds
       @repo
     end
 
-    # Returns what should be done with the database for the given configuration
-    # at the end, :save (the default) or :discard.
-    #
-    # If a repo has not been specified, then this attribute has no effect and the
-    # data will always be discarded.
-    def on_completion
-      @on_completion || :save
+    def publish?
+      @publish ? @publish == :save : true
     end
 
-    def on_completion=(val)
-      return if @on_completion && @on_completion == val
-      if @on_completion && @on_completion != val
-        fail 'You can only use a single setting for on_completion per program generation run'
+    def publish=(val)
+      return if @publish && publish? == val
+      if @publish && publish? != val
+        fail 'You can only use a single setting for publish per program generation run'
       end
       if @configuration
-        fail 'TestIds.on_completion must be set before creating the first configuration'
+        fail 'TestIds.publish must be set before creating the first configuration'
       end
-      unless %w(save discard).include?(val.to_s)
-        fail 'on_completion must be set to either :save or :discard'
+      unless [true, false].include?(val)
+        fail 'TestIds.publish must be set to either true or false'
       end
-      @on_completion = val.to_sym
+      @publish = val ? :save : :dont_save
     end
 
     private
 
     def on_origen_shutdown
-      unless testing?
-        if repo && on_completion == :save
+      if !testing? && @configuration
+        if repo
           @configuration.each do |id, config|
             config.allocator.save
           end
-          git.publish
+          git.publish if publish?
         end
       end
     end

@@ -173,14 +173,19 @@ TestIds.configure do |config|
 The repository will then be kept up to date on every program generator invocation.
 A locking system will be automatically managed for you to prevent concurrent updates from multiple users.
 
-Sometimes during development you may want to temporarily inhibit storage in the repo, just comment out or
-branch around the repo definition to achieve that:
+Sometimes during development you may want to temporarily inhibit publishing to the repo,
+that can be achieved like this:
 
 ~~~ruby
-# Only update the database when running in production mode
-if Origen.mode.production?
-  TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
-end
+TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+TestIds.publish = false
+~~~
+
+A common configuration may be to only publish in production:
+
+~~~ruby
+TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+TestIds.publish = Origen.mode.production?
 ~~~
 
 ### Multiple Configurations

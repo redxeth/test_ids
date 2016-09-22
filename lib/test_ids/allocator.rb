@@ -103,16 +103,6 @@ module TestIds
 
     private
 
-    def publish?
-      git? && config.on_completion == :publish
-    end
-
-    def git?
-      if config.repo
-        !!(config.repo =~ /\.git$/)
-      end
-    end
-
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out
     def allocate_bin

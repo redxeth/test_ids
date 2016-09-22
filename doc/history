@@ -1,3 +1,17 @@
+<a class="anchor release_tag" name="v0_3_1"></a>
+<h1><a href="#v0_3_1">Tag: v0.3.1</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 22-Sep-2016 05:37AM
+
+
+Added TestIds.publish = false to inhibit checking into Git repo, but result still stored
+locally.
+
+Fixed but causing a runtime error if the plugin was added but a configuration was never
+called.
+
 <a class="anchor release_tag" name="v0_3_0"></a>
 <h1><a href="#v0_3_0">Tag: v0.3.0</a></h1>
 

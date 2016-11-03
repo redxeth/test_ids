@@ -145,6 +145,16 @@ func :my_functional_test
 func :my_functional_test, index: 1  # Will be treated like a different test and assigned a different number
 ~~~
 
+Additionally, a :test_id option can be used to make test_ids treat differently named tests
+the same for the purposes of assigning numbers:
+
+~~~ruby
+func :my_func_33mhz, test_id: :my_func  # Will all be treated like the same test by test_ids,
+func :my_func_25mhz, test_id: :my_func  # and will therefore all be assigned the same numbers
+func :my_func_16mhz, test_id: :my_func
+~~~
+
+
 ## Storage
 
 The main benefit of this plugin is to get consistent number assignments accross different invocations of the program

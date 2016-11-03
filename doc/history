@@ -1,3 +1,22 @@
+<a class="anchor release_tag" name="v0_3_2"></a>
+<h1><a href="#v0_3_2">Tag: v0.3.2</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 03-Nov-2016 01:54AM
+
+
+Added option to supply a :test\_id key. When present, this will be used by test\_ids
+to identify the test instead of the name used within the test program, causing all
+tests with the same ID to use the same numbers:
+
+~~~ruby
+func :my\_func\_33mhz, test\_id: :my\_func  # Will all be treated like the same test by test\_ids,
+func :my\_func\_25mhz, test\_id: :my\_func  # and will therefore all be assigned the same numbers
+func :my\_func\_16mhz, test\_id: :my\_func
+~~~
+
+
 <a class="anchor release_tag" name="v0_3_1"></a>
 <h1><a href="#v0_3_1">Tag: v0.3.1</a></h1>
 

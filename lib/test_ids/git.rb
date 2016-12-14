@@ -47,7 +47,7 @@ module TestIds
         release_lock
         repo.add  # Checkin everything
         repo.commit('Publishing latest store')
-        repo.push('origin')
+        repo.push('origin', 'master', force: true)
       end
     end
 
@@ -87,7 +87,8 @@ module TestIds
     def available_to_lock?
       result = false
       Origen.profile 'Checking for lock' do
-        repo.pull
+        repo.fetch
+        repo.reset_hard
         if lock_content && lock_user && lock_user != User.current.name
           result = Time.now.to_f > lock_expires
         else

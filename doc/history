@@ -1,3 +1,15 @@
+<a class="anchor release_tag" name="v0_4_0"></a>
+<h1><a href="#v0_4_0">Tag: v0.4.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 14-Dec-2016 05:11AM
+
+
+Updated the store checkout/in process to do a better job of preventing merges between
+different workspaces. If a merge occurs it can result in lost bin refs, this should
+prevent merges ever occurring.
+
 <a class="anchor release_tag" name="v0_3_2"></a>
 <h1><a href="#v0_3_2">Tag: v0.3.2</a></h1>
 

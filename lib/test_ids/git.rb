@@ -88,7 +88,7 @@ module TestIds
       result = false
       Origen.profile 'Checking for lock' do
         repo.fetch
-        repo.reset_hard
+        repo.reset_hard('origin/master')
         if lock_content && lock_user && lock_user != User.current.name
           result = Time.now.to_f > lock_expires
         else

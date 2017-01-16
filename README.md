@@ -37,6 +37,25 @@ module MyApp
     end
 ~~~
 
+
+Then anytime that you call `flow.test(my_test_instance, options)` within your application's interface, assignments for `:bin`, `:softbin` and `:number` will automatically be injected into the options before it hits OrigenTesters.
+If an entry for any of the keys is already present in the options, then that will be given priority and TestIds will not attempt to assign a value for that attribute.
+
+If you want to prevent TestIds from generating a given attribute and really pass `nil` for that attribute to OrigenTesters, then assign it to the value `:none`:
+
+~~~ruby
+flow.test my_test, bin: :none   # Assign no bin but allow TestIds to generate a softbin and test number
+~~~
+
+A method is also provided to directly assign/retrieve the numbers for a given test from TestIds, this should be supplied with the same arguments that you would normally pass to `flow.test`:
+
+~~~ruby
+TestIds.allocate(my_test, options)   # => { bin: 5, softbin: 1250, number: 10250010 }
+
+# The above returns the same numbers that would be injected into the options when calling:
+flow.test my_test, options
+~~~
+
 ## Configuration
 
 The various ID types are generated in the following order which places some constraints on the configuration options

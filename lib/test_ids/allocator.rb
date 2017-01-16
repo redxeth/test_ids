@@ -51,6 +51,9 @@ module TestIds
       t['bin'] ||= allocate_bin
       t['softbin'] ||= allocate_softbin(t['bin'])
       t['number'] ||= allocate_number(t['bin'], t['softbin'])
+      t['bin'] = nil if t['bin'] == :none
+      t['softbin'] = nil if t['softbin'] == :none
+      t['number'] = nil if t['number'] == :none
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
       store['references']['bin'][t['bin'].to_s] = time if t['bin']

@@ -45,14 +45,26 @@ describe "The number allocator" do
     a(:t2, number: 3)[:number].should == 3
   end
 
-  it "manually assigned numbers are reserved" do
+  it "number assignments can be inhibited by passing :none" do
     TestIds.configure do |config|
       config.numbers.include << (1..4)
+    end
+    a(:t1)[:number].should == 1
+    a(:t1, number: :none)[:number].should == nil
+  end
+
+  it "manually assigned numbers are reserved" do
+    TestIds.configure do |config|
+      config.numbers.include << (1..5)
     end
     a(:t1)[:number].should == 1
     a(:t2, number: 3)[:number].should == 3
     a(:t3)[:number].should == 2
     a(:t4)[:number].should == 4
+    TestIds.allocate(:t1)[:number].should == 1
+    TestIds.allocate(:t2, number: 3)[:number].should == 3
+    TestIds.allocate(:t3)[:number].should == 2
+    TestIds.allocate(:t5)[:number].should == 5
   end
 
   it "excluded numbers are not used" do

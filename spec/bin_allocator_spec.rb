@@ -43,6 +43,9 @@ describe "The bin allocator" do
     end
     a(:t1)[:bin].should == 1
     a(:t2, bin: 3)[:bin].should == 3
+    TestIds.allocate(:t1)[:bin].should == 1
+    TestIds.allocate(:t2, bin: 3)[:bin].should == 3
+    TestIds.allocate(:t3)[:bin].should == 2
   end
 
   it "manually assigned bins are reserved" do
@@ -53,6 +56,14 @@ describe "The bin allocator" do
     a(:t2, bin: 3)[:bin].should == 3
     a(:t3)[:bin].should == 2
     a(:t4)[:bin].should == 4
+  end
+
+  it "bin assignments can be inhibited by passing :none" do
+    TestIds.configure do |config|
+      config.bins.include << (1..4)
+    end
+    a(:t1)[:bin].should == 1
+    a(:t1, bin: :none)[:bin].should == nil
   end
 
   it "excluded bins are not used" do

@@ -45,14 +45,26 @@ describe "The softbin allocator" do
     a(:t2, softbin: 3)[:softbin].should == 3
   end
 
-  it "manually assigned softbins are reserved" do
+  it "softbin assignments can be inhibited by passing :none" do
     TestIds.configure do |config|
       config.softbins.include << (1..4)
+    end
+    a(:t1)[:softbin].should == 1
+    a(:t1, sbin: :none)[:softbin].should == nil
+  end
+
+  it "manually assigned softbins are reserved" do
+    TestIds.configure do |config|
+      config.softbins.include << (1..5)
     end
     a(:t1)[:softbin].should == 1
     a(:t2, softbin: 3)[:softbin].should == 3
     a(:t3)[:softbin].should == 2
     a(:t4)[:softbin].should == 4
+    TestIds.allocate(:t1)[:softbin].should == 1
+    TestIds.allocate(:t2, softbin: 3)[:softbin].should == 3
+    TestIds.allocate(:t3)[:softbin].should == 2
+    TestIds.allocate(:t5)[:softbin].should == 5
   end
 
   it "excluded softbins are not used" do

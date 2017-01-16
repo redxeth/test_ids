@@ -19,6 +19,19 @@ module TestIds
   end
 
   class <<self
+    # Allocates a number to the given test and returns a new hash containing
+    # :bin, :softbin and :number keys.
+    #
+    # The given options hash is not modified by calling this method.
+    #
+    # Use the same arguments as you would normally pass to flow.test, the numbers
+    # returned will be the same as would be injected into flow.test.
+    def allocate(instance, options = {})
+      opts = options.dup
+      current_configuration.allocator.allocate(instance, opts)
+      { bin: opts[:bin], softbin: opts[:softbin], number: opts[:number] }
+    end
+
     def current_configuration
       configuration(@configuration_id)
     end

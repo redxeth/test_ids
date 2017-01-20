@@ -36,6 +36,10 @@ class TestIdsApplication < Origen::Application
     #files: ["lib", "config/application.rb"],
   }
 
+  config.shared = {
+    command_launcher: "config/shared_commands.rb"
+  }
+
   config.semantically_version = true
 
   # An example of how to set application specific LSF parameters

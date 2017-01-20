@@ -10,7 +10,65 @@ module TestIds
   #
   # An instance of this class is instantiated as TestIds.git
   class Git
+    include Origen::Utility::InputCapture
+
     attr_reader :repo, :local
+
+    class Rollback
+      include Origen::Utility::InputCapture
+
+      def initialize(id)
+        repos = Dir.glob("#{Origen.app.imports_dir}/test_ids/*.git")
+        if repos.size == 0
+          puts 'No TestIds repositories were found in this application'
+        elsif repos.size > 1
+          puts
+          puts 'Multiple TestIDs repositories found, select the one to rollback:'
+          puts
+          repos.each_with_index do |repo, i|
+            puts "  #{i} - #{Pathname.new(repo).basename}"
+          end
+          accept = repos.map.with_index { |r, i| i }
+          puts
+          selection = repos.size + 1
+          until repos[selection]
+            selection = get_text(single: true, accept: accept).to_i
+          end
+        else
+          selection = 0
+        end
+        name = Pathname.new(repos[selection]).basename.to_s
+        repo = ::Git.open(repos[selection])
+        begin
+          commit = repo.object(id)
+        rescue ::Git::GitExecuteError
+          puts 'The given commit ID cannot be found in that repository'
+          exit
+        end
+        day = 24 * 60 * 60
+        if commit.date < Time.now - (7 * day)
+          puts "Sorry, that commit is more than a week old and I'm too scared to rollback that far."
+          puts 'You will need to do that manually if you must.'
+          exit
+        end
+        puts
+        puts "About to rollback the TestIds repository #{name} to commit #{id}."
+        puts
+        puts 'This will permanently delete any IDs assigned by anyone, anywhere, since that commit.'
+        puts
+        puts 'ARE YOU SURE YOU KNOW WHAT YOU ARE DOING?'
+        puts
+        get_text(confirm: true, default: 'no')
+        repo.reset_hard(id)
+        repo.push('origin', 'master', force: true)
+        puts 'As you wish, rolled back successfully!'
+      end
+    end
+
+    def self.rollback(id)
+      # Implemented as a class as a hack to get access to InputCapture
+      Rollback.new(id)
+    end
 
     def initialize(options)
       unless File.exist?("#{options[:local]}/.git")

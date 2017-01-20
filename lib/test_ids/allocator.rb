@@ -22,7 +22,7 @@ module TestIds
       t = store['tests'][name]
       # If the user has supplied any of these, that number should be used
       # and reserved so that it is not automatically generated later
-      if options[:bin]
+      if options[:bin] && options[:bin].is_a?(Numeric)
         t['bin'] = options[:bin]
         store['manually_assigned']['bin'][options[:bin].to_s] = true
       # Regenerate the bin if the original allocation has since been applied
@@ -33,7 +33,7 @@ module TestIds
         t['softbin'] = nil if config.softbins.function?
         t['number'] = nil if config.numbers.function?
       end
-      if options[:softbin]
+      if options[:softbin] && options[:softbin].is_a?(Numeric)
         t['softbin'] = options[:softbin]
         store['manually_assigned']['softbin'][options[:softbin].to_s] = true
       elsif store['manually_assigned']['softbin'][t['softbin'].to_s]
@@ -41,7 +41,7 @@ module TestIds
         # Also regenerate the number as it could be a function of the softbin
         t['number'] = nil if config.numbers.function?
       end
-      if options[:number]
+      if options[:number] && options[:number].is_a?(Numeric)
         t['number'] = options[:number]
         store['manually_assigned']['number'][options[:number].to_s] = true
       elsif store['manually_assigned']['number'][t['number'].to_s]
@@ -51,19 +51,16 @@ module TestIds
       t['bin'] ||= allocate_bin
       t['softbin'] ||= allocate_softbin(t['bin'])
       t['number'] ||= allocate_number(t['bin'], t['softbin'])
-      t['bin'] = nil if t['bin'] == :none
-      t['softbin'] = nil if t['softbin'] == :none
-      t['number'] = nil if t['number'] == :none
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
-      store['references']['bin'][t['bin'].to_s] = time if t['bin']
-      store['references']['softbin'][t['softbin'].to_s] = time if t['softbin']
-      store['references']['number'][t['number'].to_s] = time if t['number']
+      store['references']['bin'][t['bin'].to_s] = time if t['bin'] && options[:bin] != :none
+      store['references']['softbin'][t['softbin'].to_s] = time if t['softbin'] && options[:softbin] != :none
+      store['references']['number'][t['number'].to_s] = time if t['number'] && options[:number] != :none
       # Update the supplied options hash that will be forwarded to the
       # program generator
-      options[:bin] = t['bin']
-      options[:softbin] = t['softbin']
-      options[:number] = t['number']
+      options[:bin] = t['bin'] unless options.delete(:bin) == :none
+      options[:softbin] = t['softbin'] unless options.delete(:softbin) == :none
+      options[:number] = t['number'] unless options.delete(:number) == :none
       options
     end
 

@@ -1,3 +1,14 @@
+<a class="anchor release_tag" name="v0_6_0"></a>
+<h1><a href="#v0_6_0">Tag: v0.6.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 09-Feb-2017 04:29AM
+
+
+Added ability to pass in test\_ids: :notrack to flow.test to prevent TestIds from tracking/
+assigning bin numbers to a particular test
+
 <a class="anchor release_tag" name="v0_5_1"></a>
 <h1><a href="#v0_5_1">Tag: v0.5.1</a></h1>
 

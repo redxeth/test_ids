@@ -56,6 +56,13 @@ TestIds.allocate(my_test, options)   # => { bin: 5, softbin: 1250, number: 10250
 flow.test my_test, options
 ~~~
 
+If you want to prevent TestIds from tracking/assigning to a given test you can supply a no-track option:
+
+~~~ruby
+flow.test my_test, bin: 10, test_ids: :notrack
+~~~
+
+
 ## Configuration
 
 The various ID types are generated in the following order which places some constraints on the configuration options

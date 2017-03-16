@@ -1,3 +1,14 @@
+<a class="anchor release_tag" name="v0_6_1"></a>
+<h1><a href="#v0_6_1">Tag: v0.6.1</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 16-Mar-2017 06:21AM
+
+
+Fixed bug where an empty store would get checked in (thereby losing all existing
+allocations) if Origen crashed before generating a test
+
 <a class="anchor release_tag" name="v0_6_0"></a>
 <h1><a href="#v0_6_0">Tag: v0.6.0</a></h1>
 

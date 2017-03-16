@@ -85,6 +85,9 @@ module TestIds
     # Saves the current allocator state to the repository
     def save
       if file
+        # Ensure the current store has been loaded before we try to re-write it, this
+        # is necessary if the program generator has crashed before creating a test
+        store
         p = Pathname.new(file)
         FileUtils.mkdir_p(p.dirname)
         File.open(p, 'w') { |f| f.puts JSON.pretty_generate(store) }

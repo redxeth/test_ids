@@ -120,7 +120,9 @@ module TestIds
       return if @lock_open
       Origen.profile 'Obtaining test IDs lock' do
         until available_to_lock?
-          Origen.log "Waiting for lock, currently locked by #{lock_user} (the lock will expire in less than #{lock_minutes_remaining} #{'minute'.pluralize(lock_minutes_remaining)} if not released before that)"
+          puts
+          puts "Waiting for lock, currently locked by #{lock_user} (the lock will expire in less than #{lock_minutes_remaining} #{'minute'.pluralize(lock_minutes_remaining)} if not released before that)"
+          puts
           sleep 5
         end
         data = {

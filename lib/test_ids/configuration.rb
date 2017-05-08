@@ -1,11 +1,12 @@
 module TestIds
   class Configuration
     class Item
-      attr_accessor :include, :exclude, :algorithm
+      attr_accessor :include, :exclude, :algorithm, :size
 
       def initialize
         @include = BinArray.new
         @exclude = BinArray.new
+        @size = 1
       end
 
       def callback(&block)

@@ -201,4 +201,24 @@ describe "The softbin allocator" do
     t[:bin].should == 3
     t[:softbin].should == 9
   end
+
+  it "tests can reserve multiple softbins" do
+    TestIds.configure do |config|
+      config.softbins.include << (10..30)
+      config.softbins.size = 5
+    end
+
+    t = a(:t1, softbin_size: 2)
+    t[:softbin].should == 10
+    t = a(:t2)
+    t[:softbin].should == 12
+    t = a(:t3)
+    t[:softbin].should == 17
+    t = a(:t4)
+    t[:softbin].should == 22
+    t = a(:t5)
+    t[:softbin].should == 10
+    t = a(:t6)
+    t[:softbin].should == 15
+  end
 end

@@ -143,4 +143,24 @@ describe "The bin allocator" do
     a(:t7)[:bin].should == 2
     a(:t8)[:bin].should == 3
   end
+
+  it "tests can reserve multiple bins" do
+    TestIds.configure do |config|
+      config.bins.include << (10..30)
+      config.bins.size = 5
+    end
+
+    t = a(:t1, bin_size: 2)
+    t[:bin].should == 10
+    t = a(:t2)
+    t[:bin].should == 12
+    t = a(:t3)
+    t[:bin].should == 17
+    t = a(:t4)
+    t[:bin].should == 22
+    t = a(:t5)
+    t[:bin].should == 10
+    t = a(:t6)
+    t[:bin].should == 15
+  end
 end

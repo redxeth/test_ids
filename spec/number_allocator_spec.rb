@@ -210,4 +210,18 @@ describe "The number allocator" do
     t[:softbin].should == 502
     t[:number].should == 505
   end
+
+  it "tests can reserve multiple numbers" do
+    TestIds.configure do |config|
+      config.bins.include << 3
+      config.softbins.include << 3
+      config.numbers.include << (8000..10000)
+      config.numbers.size = 5
+    end
+
+    t = a(:t1)
+    t[:number].should == 8000
+    t = a(:t2)
+    t[:number].should == 8005
+  end
 end

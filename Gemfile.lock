@@ -107,6 +107,7 @@ GEM
     rainbow (2.1.0)
     rake (10.5.0)
     require_all (1.4.0)
+    ripper-tags (0.3.4)
     rspec (3.5.0)
       rspec-core (~> 3.5.0)
       rspec-expectations (~> 3.5.0)
@@ -158,7 +159,8 @@ DEPENDENCIES
   byebug
   coveralls
   origen_doc_helpers
+  ripper-tags
   test_ids!
 
 BUNDLED WITH
-   1.13.4
+   1.13.6

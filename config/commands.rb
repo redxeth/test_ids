@@ -13,13 +13,10 @@ aliases ={
 # Now branch to the specific task code
 case @command
 
-# Here is an example of how to implement a command, the logic can go straight
-# in here or you can require an external file if preferred.
-when "my_command"
-  puts "Doing something..."
-  #require "commands/my_command"    # Would load file lib/commands/my_command.rb
-  # You must always exit upon successfully capturing a command to prevent 
-  # control flowing back to Origen
+when "tags"  
+  Dir.chdir Origen.root do
+    system("ripper-tags -R")
+  end
   exit 0
 
 # Example of how to make a command to run unit tests, this simply invokes RSpec on
@@ -63,6 +60,7 @@ else
   # origen -h, you can do this be assigning the required text to @application_commands
   # before handing control back to Origen. Un-comment the example below to get started.
   @application_commands = <<-EOT
+ tags         Build a tags file for this app
  specs        Run the specs (tests), -c will enable coverage
  examples     Run the examples (tests), -c will enable coverage
  test         Run both specs and examples, -c will enable coverage

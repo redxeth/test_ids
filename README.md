@@ -92,6 +92,23 @@ config.TYPE.exclude << 150         # This is already assigned to something else
 config.TYPE.exclude << (190..195)  # A range is also acceptable
 ~~~
 
+When numbers are being assigned from a range, they will be selected based on an increment of 1 by default. However,
+in cases where you want multiple numbers to be reserved by each test you can change the default like this:
+
+~~~ruby
+config.TYPE.size = 5   # Reserve 5 numbers for each test by default
+~~~
+
+Then for a given range of 100 to 200 say, it would be assigned as 100, 105, 110, etc.
+
+It is possible to override the size for an individual test by passing one or more of the options shown in
+the example below:
+
+~~~ruby
+flow.test my_test, bin_size: 2, softbin_size: 10, number_size: 100
+~~~
+
+
 ### Assigning a Template
 
 Softbin and test numbers can also be generated from a template. Note that if you supply a template for a given ID type
@@ -180,10 +197,29 @@ func :my_func_25mhz, test_id: :my_func  # and will therefore all be assigned the
 func :my_func_16mhz, test_id: :my_func
 ~~~
 
+Sometimes you may even want duplicate tests to be treated the same as far as the bin number goes, but you
+would like them to have unique test numbers (for example).
+
+That can be achieved by setting the <code>:bin</code>, <code>:softbin</code> or <code>:number</code> options
+to a Symbol or String value as shown below:
+
+
+~~~ruby
+# These will have the same bin and softbin number, but unique test numbers
+func :my_func_33mhz, test_id: :my_func, number: :my_func_33mhz
+func :my_func_25mhz, test_id: :my_func, number: :my_func_25mhz
+func :my_func_16mhz, test_id: :my_func, number: :my_func_16mhz
+
+# This time, unique softbin and test numbers, but the same bin
+func :my_func_33mhz, bin: :my_func
+func :my_func_25mhz, bin: :my_func
+func :my_func_16mhz, bin: :my_func
+~~~
+
 
 ## Storage
 
-The main benefit of this plugin is to get consistent number assignments accross different invocations of the program
+The main benefit of this plugin is to get consistent number assignments across different invocations of the program
 generator, and for that to work it is necessary for the database to be stored somewhere.
 The database is a single file that is written in JSON format to make it human readable in case there is ever a need to
 manually modify it.
@@ -263,13 +299,13 @@ end
 
 ## Notes on Duplicates
 
-The time is recorded everytime a reference is made to an ID number when generating a test program, this means
+The time is recorded each time a reference is made to an ID number when generating a test program, this means
 that we can identify the IDs which have not been used for the longest time - for example because they were
 assigned to a test which has since been removed from the flow.
 
 If the allocated range is exhausted then duplicates will start to be assigned starting from the oldest
-referenced ID first. This should ensure that true duplicates never happen as long as your assign an
-adequate range for the size of your test flow.
+referenced ID first. This should ensure that true duplicates never happen as long as you assign an
+adequate range to cover the size of your test flow.
 
 ## What is Not Supported
 

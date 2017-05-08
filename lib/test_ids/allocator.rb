@@ -57,9 +57,16 @@ module TestIds
       # manually elsewhere
       elsif store['manually_assigned']['bin'][bin['number'].to_s]
         bin['number'] = nil
+        bin['size'] = nil
         # Also regenerate these as they could be a function of the bin
-        softbin['number'] = nil if config.softbins.function?
-        number['number'] = nil if config.numbers.function?
+        if config.softbins.function?
+          softbin['number'] = nil
+          softbin['size'] = nil
+        end
+        if config.numbers.function?
+          number['number'] = nil
+          number['size'] = nil
+        end
       end
       if options[:softbin] && options[:softbin].is_a?(Numeric)
         softbin['number'] = options[:softbin]
@@ -67,8 +74,12 @@ module TestIds
         store['manually_assigned']['softbin'][options[:softbin].to_s] = true
       elsif store['manually_assigned']['softbin'][softbin['number'].to_s]
         softbin['number'] = nil
+        softbin['size'] = nil
         # Also regenerate the number as it could be a function of the softbin
-        number['number'] = nil if config.numbers.function?
+        if config.numbers.function?
+          number['number'] = nil
+          number['size'] = nil
+        end
       end
       if options[:number] && options[:number].is_a?(Numeric)
         number['number'] = options[:number]
@@ -76,12 +87,16 @@ module TestIds
         store['manually_assigned']['number'][options[:number].to_s] = true
       elsif store['manually_assigned']['number'][number['number'].to_s]
         number['number'] = nil
+        number['size'] = nil
       end
 
       # Otherwise generate the missing ones
       bin['number'] ||= allocate_bin(size: bin_size)
+      bin['size'] ||= bin_size
       softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
+      softbin['size'] ||= softbin_size
       number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+      number['size'] ||= number_size
 
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
@@ -95,11 +110,19 @@ module TestIds
         store['references']['number'][(number['number'] + i).to_s] = time if number['number'] && options[:number] != :none
       end
 
-      # Update the supplied options hash that will be forwarded to the
-      # program generator
-      options[:bin] = bin['number'] unless options.delete(:bin) == :none
-      options[:softbin] = softbin['number'] unless options.delete(:softbin) == :none
-      options[:number] = number['number'] unless options.delete(:number) == :none
+      # Update the supplied options hash that will be forwarded to the program generator
+      unless options.delete(:bin) == :none
+        options[:bin] = bin['number']
+        options[:bin_size] = bin['size']
+      end
+      unless options.delete(:softbin) == :none
+        options[:softbin] = softbin['number']
+        options[:softbin_size] = softbin['size']
+      end
+      unless options.delete(:number) == :none
+        options[:number] = number['number']
+        options[:number_size] = number['size']
+      end
       options
     end
 
@@ -126,6 +149,7 @@ module TestIds
           @last_bin = s['pointers']['bin']
           @last_softbin = s['pointers']['softbin']
           @last_number = s['pointers']['number']
+          s
         else
           {
             'format_revision'   => STORE_FORMAT_REVISION,

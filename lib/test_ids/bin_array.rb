@@ -5,7 +5,7 @@ module TestIds
     end
 
     def <<(val)
-      @store += Array(val)
+      @store << val
       @store = @store.sort do |a, b|
         a = a.min if a.is_a?(Range)
         b = b.min if b.is_a?(Range)
@@ -33,8 +33,9 @@ module TestIds
     # when called the next time.
     # A bin can optionally be supplied in which case the internal pointer will be reset and the
     # next bin that occurs after the given number will be returned.
-    def next(after = nil)
-      if after
+    def next(options = {})
+      if options[:after]
+        after = options[:after]
         # Need to work out the pointer here as it is probably out of sync with the
         # last value now
         @pointer = nil
@@ -79,7 +80,21 @@ module TestIds
           @next = v
         end
       end
-      @next
+      if options[:size] && options[:size] > 1
+        # Check that all the numbers in the range to be reserved are included in the allocation,
+        # if not call again
+        included = true
+        options[:size].times { |i| included = false unless include?(@next + i) }
+        if included
+          n = @next
+          @next = @next + options[:size] - 1
+          n
+        else
+          self.next(after: @next, size: options[:size])
+        end
+      else
+        @next
+      end
     end
 
     def min

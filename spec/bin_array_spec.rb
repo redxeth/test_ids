@@ -26,17 +26,29 @@ describe "A Bin Array" do
     b.next.should == 10
     b.next.should == 15
     b.next.should == 16
-    b.next(18).should == 19
+    b.next(after: 18).should == 19
     b.next.should == 20
     b.next.should == 30
     # When the end is reached it should return nil
     b.next.should == nil
     b.next.should == nil
     b.next.should == nil
-    b.next(13).should == 15
-    b.next(25).should == 30
-    b.next(100).should == nil
+    b.next(after: 13).should == 15
+    b.next(after: 25).should == 30
+    b.next(after: 100).should == nil
     b.next.should == nil
+  end
+
+  it "the next method can handle size reservations" do
+    b = TestIds::BinArray.new
+    b << (10..20)
+    b << (30..40)
+
+    b.next(size: 4).should == 10
+    b.next(size: 4).should == 14
+    b.next(size: 4).should == 30
+    b.next(size: 4).should == 34
+    b.next(size: 4).should == nil
   end
 
   it "the include? method works" do

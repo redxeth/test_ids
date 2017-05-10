@@ -29,7 +29,9 @@ module TestIds
     def allocate(instance, options = {})
       opts = options.dup
       current_configuration.allocator.allocate(instance, opts)
-      { bin: opts[:bin], softbin: opts[:softbin], number: opts[:number] }
+      { bin: opts[:bin], bin_size: opts[:bin_size], softbin: opts[:softbin], softbin_size: opts[:softbin_size],
+        number: opts[:number], number_size: opts[:number_size]
+      }
     end
 
     def current_configuration

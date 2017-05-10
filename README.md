@@ -50,7 +50,7 @@ flow.test my_test, bin: :none   # Assign no bin but allow TestIds to generate a 
 A method is also provided to directly assign/retrieve the numbers for a given test from TestIds, this should be supplied with the same arguments that you would normally pass to `flow.test`:
 
 ~~~ruby
-TestIds.allocate(my_test, options)   # => { bin: 5, softbin: 1250, number: 10250010 }
+TestIds.allocate(my_test, options)   # => { bin: 5, bin_size: 1, softbin: 1250, softbin_size: 1 number: 10250010, number_size: 1 }
 
 # The above returns the same numbers that would be injected into the options when calling:
 flow.test my_test, options

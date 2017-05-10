@@ -1,3 +1,13 @@
+<a class="anchor release_tag" name="v0_7_1"></a>
+<h1><a href="#v0_7_1">Tag: v0.7.1</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 10-May-2017 06:26AM
+
+
+The TestIds.allocate method now includes the assigned sizes in the returned hash
+
 <a class="anchor release_tag" name="v0_7_0"></a>
 <h1><a href="#v0_7_0">Tag: v0.7.0</a></h1>
 

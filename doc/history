@@ -1,3 +1,25 @@
+<a class="anchor release_tag" name="v0_8_0"></a>
+<h1><a href="#v0_8_0">Tag: v0.8.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 04-Jul-2017 05:39AM
+
+
+Added test\_ids:clear command to clear the database.
+
+Added the ability for the test number to be referenced in a softbin algorithm,
+e.g. here to set the softbin to the same as the test number:
+
+~~~ruby
+TestIds.configure do |config|
+  config.bins.include << (1..3)
+  config.softbins.algorithm = :nnnn
+  config.numbers.include << (8000..9000)
+end
+~~~
+
+
 <a class="anchor release_tag" name="v0_7_1"></a>
 <h1><a href="#v0_7_1">Tag: v0.7.1</a></h1>
 

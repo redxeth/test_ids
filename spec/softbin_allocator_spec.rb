@@ -161,6 +161,26 @@ describe "The softbin allocator" do
     t[:softbin].should == 3000
   end
 
+  it "the softbin can be set to the test number" do
+    TestIds.configure do |config|
+      config.bins.include << (1..3)
+      config.softbins.algorithm = :nnnn
+      config.numbers.include << (8000..9000)
+    end
+    t = a(:t1)
+    t[:bin].should == 1
+    t[:softbin].should == 8000
+    t[:number].should == 8000
+    t = a(:t2)
+    t[:bin].should == 2
+    t[:softbin].should == 8001
+    t[:number].should == 8001
+    t = a(:t3)
+    t[:bin].should == 3
+    t[:softbin].should == 8002
+    t[:number].should == 8002
+  end
+
   it "algorithm based softbins can include an increment counter" do
     TestIds.configure do |config|
       config.bins.include << 3

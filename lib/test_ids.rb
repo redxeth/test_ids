@@ -6,17 +6,13 @@ module TestIds
   # THIS FILE SHOULD ONLY BE USED TO LOAD RUNTIME DEPENDENCIES
   # If this plugin has any development dependencies (e.g. dummy DUT or other models that are only used
   # for testing), then these should be loaded from config/boot.rb
-
-  # Example of how to explicitly require a file
-  # require "test_ids/my_file"
-
-  # Load all files in the lib/test_ids directory.
-  # Note that there is no problem from requiring a file twice (Ruby will ignore
-  # the second require), so if you have a file that must be required first, then
-  # explicitly require it up above and then let this take care of the rest.
-  Dir.glob("#{File.dirname(__FILE__)}/test_ids/**/*.rb").sort.each do |file|
-    require file
-  end
+  require 'test_ids/allocator'
+  require 'test_ids/bin_array'
+  require 'test_ids/configuration'
+  require 'test_ids/git'
+  require 'test_ids/shutdown_handler'
+  require 'test_ids/origen/origen'
+  require 'test_ids/origen_testers/flow'
 
   class <<self
     # Allocates a number to the given test and returns a new hash containing
@@ -32,6 +28,12 @@ module TestIds
       { bin: opts[:bin], bin_size: opts[:bin_size], softbin: opts[:softbin], softbin_size: opts[:softbin_size],
         number: opts[:number], number_size: opts[:number_size]
       }
+    end
+
+    # Load an existing allocator, which will be loaded with an empty configuration
+    # @api internal
+    def load_allocator(id = nil)
+      Configuration.new(id).allocator
     end
 
     def current_configuration
@@ -64,6 +66,27 @@ module TestIds
       initialize_git
     end
 
+    ## Can be called in place of TestIDs.configure to change the configuration from
+    ## the one that was originally supplied.
+    ## It is expected that this is mainly useful for testing purposes only.
+    # def reconfigure(id = nil, options = {}, &block)
+    #  id, options = nil, id if id.is_a?(Hash)
+
+    #  @configuration_id = id || options[:id] || :not_specified
+
+    #  @configuration ||= {}
+
+    #  old = @configuration[@configuration_id]
+    #  new = Configuration.new(@configuration_id)
+    #  new.instance_variable_set('@allocator', old.allocator)
+    #  new.allocator.instance_variable_set('@config', new)
+    #  @configuration[@configuration_id] =  new
+
+    #  yield new
+
+    #  new.validate!
+    # end
+
     def configured?
       !!@configuration_id
     end
@@ -82,7 +105,7 @@ module TestIds
     # git storage has not been enabled
     def database_file(id)
       if repo
-        if id == :not_specified
+        if id == :not_specified || !id || id == ''
           f = 'store.json'
         else
           f = "store_#{id.to_s.downcase}.json"
@@ -135,6 +158,20 @@ module TestIds
       end
       @publish = val ? :save : :dont_save
     end
+
+    ## When set to true, all numbers generated will be checked to see if they comply
+    ## with the current configuration, and if not they will be re-assigned based on the
+    ## current configuration
+    # def reallocate_non_compliant
+    #  @reallocate_non_compliant
+    # end
+
+    ## When set to true, all numbers generated will be checked to see if they comply
+    ## with the current configuration, and if not they will be re-assigned based on the
+    ## current configuration
+    # def reallocate_non_compliant=(val)
+    #  @reallocate_non_compliant = val
+    # end
 
     private
 

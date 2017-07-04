@@ -14,10 +14,11 @@ module TestIds
 
     attr_reader :repo, :local
 
-    class Rollback
+    # @api private
+    class PathToLocal
       include Origen::Utility::InputCapture
 
-      def initialize(id)
+      def find
         repos = Dir.glob("#{Origen.app.imports_dir}/test_ids/*.git")
         if repos.size == 0
           puts 'No TestIds repositories were found in this application'
@@ -37,37 +38,15 @@ module TestIds
         else
           selection = 0
         end
-        name = Pathname.new(repos[selection]).basename.to_s
-        repo = ::Git.open(repos[selection])
-        begin
-          commit = repo.object(id)
-        rescue ::Git::GitExecuteError
-          puts 'The given commit ID cannot be found in that repository'
-          exit
-        end
-        day = 24 * 60 * 60
-        if commit.date < Time.now - (7 * day)
-          puts "Sorry, that commit is more than a week old and I'm too scared to rollback that far."
-          puts 'You will need to do that manually if you must.'
-          exit
-        end
-        puts
-        puts "About to rollback the TestIds repository #{name} to commit #{id}."
-        puts
-        puts 'This will permanently delete any IDs assigned by anyone, anywhere, since that commit.'
-        puts
-        puts 'ARE YOU SURE YOU KNOW WHAT YOU ARE DOING?'
-        puts
-        get_text(confirm: true, default: 'no')
-        repo.reset_hard(id)
-        repo.push('origin', 'master', force: true)
-        puts 'As you wish, rolled back successfully!'
+        repos[selection]
       end
     end
 
-    def self.rollback(id)
+    # Returns a path to the local test IDs repo, if multiple are found the user will be
+    # prompted to choose one
+    def self.path_to_local
       # Implemented as a class as a hack to get access to InputCapture
-      Rollback.new(id)
+      PathToLocal.new.find
     end
 
     def initialize(options)
@@ -91,6 +70,34 @@ module TestIds
       # of the program generation run.
       # No need to pull latest as that will be done when we obtain a lock.
       @repo.reset_hard
+    end
+
+    # Roll the repo back to the given commit ID
+    def rollback(id)
+      name = Pathname.new(local).basename.to_s
+      begin
+        commit = repo.object(id)
+      rescue ::Git::GitExecuteError
+        puts 'The given commit ID cannot be found in that repository'
+        exit
+      end
+      # day = 24 * 60 * 60
+      # if commit.date < Time.now - (7 * day)
+      #  puts "Sorry, that commit is more than a week old and I'm too scared to rollback that far."
+      #  puts 'You will need to do that manually if you must.'
+      #  exit
+      # end
+      puts
+      puts "About to rollback the TestIds repository #{name} to commit #{id}."
+      puts
+      puts 'This will permanently delete any IDs assigned by anyone, anywhere, since that commit.'
+      puts
+      puts 'ARE YOU SURE YOU KNOW WHAT YOU ARE DOING?'
+      puts
+      get_text(confirm: true, default: 'no')
+      repo.reset_hard(id)
+      repo.push('origin', 'master', force: true)
+      puts 'As you wish, rolled back successfully!'
     end
 
     def exec(cmd)

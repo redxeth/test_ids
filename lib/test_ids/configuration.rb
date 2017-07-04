@@ -25,6 +25,9 @@ module TestIds
         !!algorithm || !!callback
       end
 
+      # def compliant?(number)
+      # end
+
       def freeze
         @include.freeze
         @exclude.freeze

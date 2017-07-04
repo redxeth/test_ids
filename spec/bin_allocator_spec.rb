@@ -163,4 +163,37 @@ describe "The bin allocator" do
     t = a(:t6)
     t[:bin].should == 15
   end
+
+  #it "existing test IDs can be checked for compliance and re-assigned if non-compliant" do
+  #  TestIds.configure do |config|
+  #    config.bins.include << (1..3)
+  #  end
+  #  a(:t1)[:bin].should == 1
+  #  a(:t2)[:bin].should == 2
+  #  a(:t3)[:bin].should == 3
+  #  a(:t4)[:bin].should == 1
+  #  a(:t4)[:bin].should == 1
+  #  a(:t5)[:bin].should == 2
+
+  #  TestIds.reconfigure do |config|
+  #    config.bins.include << (11..13)
+  #  end
+
+  #  # Verify that the original allocations are still around
+  #  a(:t1)[:bin].should == 1
+  #  a(:t2)[:bin].should == 2
+  #  a(:t3)[:bin].should == 3
+  #  a(:t4)[:bin].should == 1
+  #  a(:t4)[:bin].should == 1
+  #  a(:t5)[:bin].should == 2
+
+  #  TestIds.reallocate_non_compliant = true
+
+  #  a(:t1)[:bin].should == 11
+  #  a(:t2)[:bin].should == 12
+  #  a(:t3)[:bin].should == 13
+  #  a(:t4)[:bin].should == 11
+  #  a(:t4)[:bin].should == 11
+  #  a(:t5)[:bin].should == 12
+  #end
 end

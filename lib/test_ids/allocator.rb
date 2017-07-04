@@ -16,6 +16,7 @@ module TestIds
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
+      orig_options = options.dup
       clean(options)
       @callbacks = []
       name = extract_test_name(instance, options)
@@ -93,10 +94,19 @@ module TestIds
       # Otherwise generate the missing ones
       bin['number'] ||= allocate_bin(size: bin_size)
       bin['size'] ||= bin_size
-      softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
-      softbin['size'] ||= softbin_size
-      number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
-      number['size'] ||= number_size
+      # If the softbin is based on the test number, then need to calculate the
+      # test number first
+      if config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/
+        number['number'] ||= allocate_number(bin: bin['number'], size: number_size)
+        number['size'] ||= number_size
+        softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
+        softbin['size'] ||= softbin_size
+      else
+        softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
+        softbin['size'] ||= softbin_size
+        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+        number['size'] ||= number_size
+      end
 
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
@@ -123,6 +133,18 @@ module TestIds
         options[:number] = number['number']
         options[:number_size] = number['size']
       end
+
+      ## If reallocation is on, then check if the generated numbers are compliant, if not
+      ## clear them and go back around again to generate a new set
+      # if TestIds.reallocate_non_compliant
+      #  if !config.bins.function?
+      #    if !config.bins.compliant?(options[:bin])
+      #      store["assigned"]["bin"].delete(bin_id)
+      #      return allocate(instance, orig_options)
+      #    end
+      #  end
+      # end
+
       options
     end
 
@@ -159,6 +181,28 @@ module TestIds
             'references'        => { 'bin' => {}, 'softbin' => {}, 'number' => {} }
           }
         end
+      end
+    end
+
+    # Clear the :bins, :softbins and/or :numbers by setting the options for each item to true
+    def clear(options)
+      if options[:softbin] || options[:softbins]
+        store['assigned']['softbin'] = {}
+        store['manually_assigned']['softbin'] = {}
+        store['pointers']['softbin'] = nil
+        store['references']['softbin'] = {}
+      end
+      if options[:bin] || options[:bins]
+        store['assigned']['bin'] = {}
+        store['manually_assigned']['bin'] = {}
+        store['pointers']['bin'] = nil
+        store['references']['bin'] = {}
+      end
+      if options[:number] || options[:numbers]
+        store['assigned']['number'] = {}
+        store['manually_assigned']['number'] = {}
+        store['pointers']['number'] = nil
+        store['references']['number'] = {}
       end
     end
 
@@ -220,18 +264,27 @@ module TestIds
 
     def allocate_softbin(options)
       bin = options[:bin]
+      num = options[:number]
       return nil if config.softbins.empty?
       if config.softbins.algorithm
         algo = config.softbins.algorithm.to_s.downcase
-        if algo.to_s =~ /^[b\dx]+$/
+        if algo.to_s =~ /^[b\dxn]+$/
           number = algo.to_s
           bin = bin.to_s
           if number =~ /(b+)/
             max_bin_size = Regexp.last_match(1).size
             if bin.size > max_bin_size
-              fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
+              fail "Bin number (#{bin}) overflows the softbin number algorithm (#{algo})"
             end
             number = number.sub(/b+/, bin.rjust(max_bin_size, '0'))
+          end
+          if number =~ /(n+)/
+            num = num.to_s
+            max_num_size = Regexp.last_match(1).size
+            if num.size > max_num_size
+              fail "Test number (#{num}) overflows the softbin number algorithm (#{algo})"
+            end
+            number = number.sub(/n+/, num.rjust(max_num_size, '0'))
           end
           if number =~ /(x+)/
             max_counter_size = Regexp.last_match(1).size

@@ -115,6 +115,43 @@ module TestIds
       end
     end
 
+    # Yields all number to the given block, one at a time
+    def yield_all
+      p = @pointer
+      nx = @next
+      @pointer = nil
+      @next = nil
+      while n = self.next
+        yield n
+      end
+      @pointer = p
+      @next = nx
+      nil
+    end
+
+    def to_json(*a)
+      @store.to_json(*a)
+    end
+
+    # @api private
+    def load_from_serialized(o)
+      @store = []
+      o.each do |i|
+        if i.is_a?(Numeric) || i.is_a?(Range)
+          self.<<(i)
+        elsif i.is_a?(String)
+          # JSON does not serialize ranges well, take care of it here
+          if i =~ /^(\d+)\.\.(\d+)$/
+            self.<<((Regexp.last_match(1).to_i)..(Regexp.last_match(2).to_i))
+          else
+            fail "Unknown bin array object type (#{o.class}): #{o}"
+          end
+        else
+          fail "Unknown bin array object type (#{o.class}): #{o}"
+        end
+      end
+    end
+
     private
 
     def previous_pointer(i)

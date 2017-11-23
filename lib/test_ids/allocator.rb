@@ -1,3 +1,4 @@
+require 'json'
 module TestIds
   # The allocator is responsible for assigning new numbers and keeping a record of
   # existing assignments.
@@ -89,6 +90,11 @@ module TestIds
       elsif store['manually_assigned']['numbers'][number['number'].to_s]
         number['number'] = nil
         number['size'] = nil
+        # Also regenerate the softbin as it could be a function of the number
+        if config.softbins.function?
+          softbin['number'] = nil
+          softbin['size'] = nil
+        end
       end
 
       # Otherwise generate the missing ones
@@ -134,17 +140,6 @@ module TestIds
         options[:number_size] = number['size']
       end
 
-      ## If reallocation is on, then check if the generated numbers are compliant, if not
-      ## clear them and go back around again to generate a new set
-      # if TestIds.reallocate_non_compliant
-      #  if !config.bins.function?
-      #    if !config.bins.compliant?(options[:bin])
-      #      store["assigned"]["bin"].delete(bin_id)
-      #      return allocate(instance, orig_options)
-      #    end
-      #  end
-      # end
-
       options
     end
 
@@ -178,6 +173,7 @@ module TestIds
           if s['format_revision'] == 1
             s = {
               'format_revision'   => 2,
+              'configuration'     => nil,
               'pointers'          => { 'bins' => s['pointers']['bin'], 'softbins' => s['pointers']['softbin'], 'numbers' => s['pointers']['number'] },
               'assigned'          => { 'bins' => s['assigned']['bin'], 'softbins' => s['assigned']['softbin'], 'numbers' => s['assigned']['number'] },
               'manually_assigned' => { 'bins' => s['manually_assigned']['bin'], 'softbins' => s['manually_assigned']['softbin'], 'numbers' => s['manually_assigned']['number'] },
@@ -192,11 +188,69 @@ module TestIds
         else
           {
             'format_revision'   => STORE_FORMAT_REVISION,
+            'configuration'     => nil,
             'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil },
             'assigned'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'manually_assigned' => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'references'        => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} }
           }
+        end
+      end
+    end
+
+    def repair(options = {})
+      #####################################################################
+      # Add any numbers that are missing from the references pool if the
+      # allocator has moved onto the reclamation phase
+      #####################################################################
+      { 'bins' => 'bins', 'softbins' => 'softbins', 'numbers' => 'test_numbers' }.each do |type, name|
+        if !config.send(type).function? && store['pointers'][type] == 'done'
+          Origen.log.info "Checking for missing #{name}..."
+          recovered = add_missing_references(config.send(type), store['references'][type])
+          if recovered == 0
+            Origen.log.info "  All #{name} are already available."
+          else
+            Origen.log.success "  Another #{recovered} #{name} have been made available!"
+          end
+        end
+      end
+
+      #####################################################################
+      # Check that all assignments are valid based on the current config,
+      # if not remove them and they will be re-allocated next time
+      #####################################################################
+      { 'bins' => 'bins', 'softbins' => 'softbins', 'numbers' => 'test_numbers' }.each do |type, name|
+        next if config.send(type).function?
+        Origen.log.info "Checking all #{name} assignments are valid..."
+        also_remove_from = []
+        if type == 'bin'
+          also_remove_from << store['assigned']['softbins'] if config.softbins.function?
+          also_remove_from << store['assigned']['numbers'] if config.numbers.function?
+        elsif type == 'softbin'
+          also_remove_from << store['assigned']['numbers'] if config.numbers.function?
+        else
+          also_remove_from << store['assigned']['softbins'] if config.softbins.function?
+        end
+        removed = remove_invalid_assignments(config.send(type), store['assigned'][type], store['manually_assigned'][type], also_remove_from)
+        if removed == 0
+          Origen.log.info "  All #{name} assignments are already valid."
+        else
+          Origen.log.success "  #{removed} #{name} assignments have been removed!"
+        end
+      end
+
+      #####################################################################
+      # Check that all references are valid based on the current config,
+      # if not remove them
+      #####################################################################
+      { 'bins' => 'bins', 'softbins' => 'softbins', 'numbers' => 'test_numbers' }.each do |type, name|
+        next if config.send(type).function?
+        Origen.log.info "Checking all #{name} references are valid..."
+        removed = remove_invalid_references(config.send(type), store['references'][type], store['manually_assigned'][type])
+        if removed == 0
+          Origen.log.info "  All #{name} references are already valid."
+        else
+          Origen.log.success "  #{removed} #{name} references have been removed!"
         end
       end
     end
@@ -229,13 +283,18 @@ module TestIds
         # Ensure the current store has been loaded before we try to re-write it, this
         # is necessary if the program generator has crashed before creating a test
         store
+        store['configuration'] = config
         p = Pathname.new(file)
         FileUtils.mkdir_p(p.dirname)
         File.open(p, 'w') do |f|
           f.puts '// The structure of this file is as follows:'
           f.puts '//'
           f.puts '//  {'
+          f.puts '//    // A revision number used by TestIDs to identify the format of this file'
           f.puts "//    'format_revision'   => STORE_FORMAT_REVISION,"
+          f.puts '//'
+          f.puts '//    // Captures the configuration that was used the last time this database was updated.'
+          f.puts "//    'configuration'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },"
           f.puts '//'
           f.puts '//    // If some number are still to be allocated, these point to the last number given out.'
           f.puts '//    // If all numbers have been allocated and we are now on the reclamation phase, the pointer'
@@ -269,7 +328,51 @@ module TestIds
       config.id
     end
 
+    # @api private
+    def load_configuration_from_store
+      config.load_from_serialized(store['configuration']) if store['configuration']
+    end
+
     private
+
+    def remove_invalid_references(config_item, references, manually_assigned)
+      removed = 0
+      references.each do |num, time|
+        unless config_item.valid?(num.to_i) || manually_assigned[num]
+          removed += 1
+          references.delete(num)
+        end
+      end
+      removed
+    end
+
+    def remove_invalid_assignments(config_item, assigned, manually_assigned, also_remove_from)
+      removed = 0
+      assigned.each do |id, a|
+        a['size'].times do |i|
+          unless config_item.valid?(a['number'] + i) || manually_assigned[(a['number'] + i).to_s]
+            removed += 1
+            assigned.delete(id)
+            also_remove_from.each { |a| a.delete(id) }
+            break
+          end
+        end
+      end
+      removed
+    end
+
+    def add_missing_references(config_item, references)
+      recovered = 0
+      a_long_time_ago = Time.new(2000, 1, 1).to_f
+      config_item.yield_all do |i|
+        i = i.to_s
+        unless references[i]
+          references[i] = a_long_time_ago
+          recovered += 1
+        end
+      end
+      recovered
+    end
 
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out

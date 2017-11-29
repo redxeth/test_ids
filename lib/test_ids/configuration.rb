@@ -92,7 +92,7 @@ module TestIds
       @bins ||= Item.new
     end
 
-    def softbins
+    def softbins(&block)
       @softbins ||= Item.new
       if block_given?
         @softbins.callback(&block)

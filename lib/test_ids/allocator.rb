@@ -101,8 +101,10 @@ module TestIds
       bin['number'] ||= allocate_bin(size: bin_size)
       bin['size'] ||= bin_size
       # If the softbin is based on the test number, then need to calculate the
-      # test number first
-      if config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/
+      # test number first.
+      # Also do the number first if the softbin is a callback and the number is not.
+      if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
+         (config.softbins.callback && !config.numbers.function?)
         number['number'] ||= allocate_number(bin: bin['number'], size: number_size)
         number['size'] ||= number_size
         softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
@@ -307,7 +309,7 @@ module TestIds
           f.puts '//    // This is a record of any numbers which have been manually assigned.'
           f.puts "//    'manually_assigned' => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },"
           f.puts '//'
-          f.puts '//    // This list all assigned numbers in chronological order of when they were last referenced.'
+          f.puts '//    // This contains all assigned numbers with a timestamp of when they were last referenced.'
           f.puts '//    // When numbers need to be reclaimed, they will be taken from the bottom of this list, i.e.'
           f.puts '//    // the numbers which have not been used for the longest time, e.g. because the test they'
           f.puts '//    // were assigned to has since been removed.'
@@ -459,7 +461,7 @@ module TestIds
         end
         number.to_i
       elsif callback = config.softbins.callback
-        callback.call(bin)
+        callback.call(bin, num)
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

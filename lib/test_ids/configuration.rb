@@ -76,6 +76,14 @@ module TestIds
       numbers.algorithm = val
     end
 
+    def send_to_ate=(val)
+      @send_to_ate = val
+    end
+
+    def send_to_ate
+      @send_to_ate
+    end
+
     def validate!
       unless validated?
         if bins.algorithm

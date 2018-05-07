@@ -92,6 +92,10 @@ module TestIds
       @bins ||= Item.new
     end
 
+    def ranges
+      @ranges ||= Item.new
+    end
+
     def softbins(&block)
       @softbins ||= Item.new
       if block_given?
@@ -141,6 +145,7 @@ module TestIds
 
     def freeze
       bins.freeze
+      ranges.freeze
       softbins.freeze
       numbers.freeze
       super
@@ -150,7 +155,8 @@ module TestIds
       {
         'bins'     => bins,
         'softbins' => softbins,
-        'numbers'  => numbers
+        'numbers'  => numbers,
+        'ranges'   => ranges
       }.to_json(*a)
     end
 
@@ -159,6 +165,7 @@ module TestIds
       bins.load_from_serialized(store['bins'])
       softbins.load_from_serialized(store['softbins'])
       numbers.load_from_serialized(store['numbers'])
+      ranges.load_from_serialized(store['ranges'])
     end
   end
 end

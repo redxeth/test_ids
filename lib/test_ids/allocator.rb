@@ -22,6 +22,7 @@ module TestIds
       @callbacks = []
       name = extract_test_name(instance, options)
       name = "#{name}_#{options[:index]}" if options[:index]
+      options[:file] = file
 
       # First work out the test ID to be used for each of the numbers, and how many numbers
       # should be reserved
@@ -109,6 +110,11 @@ module TestIds
         number['size'] ||= number_size
         softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
         softbin['size'] ||= softbin_size
+      elsif options[:softbin].is_a?(Range)
+        softbin['number'] ||= allocate_softbin(file: options[:file], bin: bin['number'], softbin: options[:softbin], size: softbin_size)
+        softbin['size'] ||= softbin_size
+        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+        number['size'] ||= number_size
       else
         softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
         softbin['size'] ||= softbin_size
@@ -156,11 +162,12 @@ module TestIds
         if s
           unless s['format_revision']
             # Upgrade the original store format
-            t = { 'bin' => {}, 'softbin' => {}, 'number' => {} }
+            t = { 'bin' => {}, 'softbin' => {}, 'number' => {}, 'ranges' => {} }
             s['tests'].each do |name, numbers|
               t['bin'][name] = { 'number' => numbers['bin'], 'size' => 1 }
               t['softbin'][name] = { 'number' => numbers['softbin'], 'size' => 1 }
               t['number'][name] = { 'number' => numbers['number'], 'size' => 1 }
+              t['ranges'][name] = { 'ranges' => numbers['ranges'], 'size' => 1 }
             end
             s = {
               'format_revision'   => 1,
@@ -176,7 +183,7 @@ module TestIds
             s = {
               'format_revision'   => 2,
               'configuration'     => nil,
-              'pointers'          => { 'bins' => s['pointers']['bin'], 'softbins' => s['pointers']['softbin'], 'numbers' => s['pointers']['number'] },
+              'pointers'          => { 'bins' => s['pointers']['bin'], 'softbins' => s['pointers']['softbin'], 'numbers' => s['pointers']['number'], 'ranges' => s['pointers']['ranges'] },
               'assigned'          => { 'bins' => s['assigned']['bin'], 'softbins' => s['assigned']['softbin'], 'numbers' => s['assigned']['number'] },
               'manually_assigned' => { 'bins' => s['manually_assigned']['bin'], 'softbins' => s['manually_assigned']['softbin'], 'numbers' => s['manually_assigned']['number'] },
               'references'        => { 'bins' => s['references']['bin'], 'softbins' => s['references']['softbin'], 'numbers' => s['references']['number'] }
@@ -186,12 +193,13 @@ module TestIds
           @last_bin = s['pointers']['bins']
           @last_softbin = s['pointers']['softbins']
           @last_number = s['pointers']['numbers']
+          @last_softbin_by_ranges = s['pointers']['ranges']
           s
         else
           {
             'format_revision'   => STORE_FORMAT_REVISION,
             'configuration'     => nil,
-            'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil },
+            'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil, 'ranges' => nil },
             'assigned'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'manually_assigned' => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'references'        => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} }
@@ -411,6 +419,7 @@ module TestIds
     def allocate_softbin(options)
       bin = options[:bin]
       num = options[:number]
+      softbin = options[:softbin] if options[:softbin]
       return nil if config.softbins.empty?
       if config.softbins.algorithm
         algo = config.softbins.algorithm.to_s.downcase
@@ -461,7 +470,11 @@ module TestIds
         end
         number.to_i
       elsif callback = config.softbins.callback
-        callback.call(bin, num)
+        if softbin.is_a?(Range)
+          callback.call(bin, options)
+        else
+          callback.call(bin, num)
+        end
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

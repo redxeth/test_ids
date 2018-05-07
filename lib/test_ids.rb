@@ -52,7 +52,7 @@ module TestIds
            temp = @softbin_ranges.index(orig_options[:softbin])
            @pointer = previously_given_softbin.to_i - @softbin_ranges[temp].min
            if previously_given_softbin == orig_options[:softbin].to_a[@pointer].to_s
-             @pointer += 1
+             @pointer += options[:size]
              given_softbin = orig_options[:softbin].to_a[@pointer]
            else
              given_softbin = orig_options[:softbin].to_a[@pointer]

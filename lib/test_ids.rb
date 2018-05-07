@@ -18,13 +18,13 @@ module TestIds
    # Initialize
    def initialize
      @softbin_ranges ||= []
-     @given_softbins_by_range ||= {}
+     @assigned_softbins_by_range ||= {}
    end
 
-   # Allocates a number to the given test and returns a new hash containing
+   # Allocates a number to the assigned test and returns a new hash containing
    # :bin, :softbin and :number keys.
    #
-   # The given options hash is not modified by calling this method.
+   # The assigned options hash is not modified by calling this method.
    #
    # Use the same arguments as you would normally pass to flow.test, the numbers
    # returned will be the same as would be injected into flow.test.
@@ -37,7 +37,7 @@ module TestIds
    end
 
    # Allocates a softbin number from the range specified in the test flow
-   # It also keeps a track of the last softbin given out from a particular range
+   # It also keeps a track of the last softbin assigned out from a particular range
    # and uses that to increment the pointers accordingly.
    # If a numeric number is passed to the softbin, it uses that number.
    # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
@@ -48,23 +48,23 @@ module TestIds
        if options[:softbin].is_a?(Range)
          orig_options = options.dup
          if @softbin_ranges.include? orig_options[:softbin]
-           previously_given_softbin = @given_softbins_by_range[:"#{orig_options[:softbin]}"]
+           previously_assigned_softbin = @assigned_softbins_by_range[:"#{orig_options[:softbin]}"]
            temp = @softbin_ranges.index(orig_options[:softbin])
-           @pointer = previously_given_softbin.to_i - @softbin_ranges[temp].min
-           if previously_given_softbin == orig_options[:softbin].to_a[@pointer].to_s
+           @pointer = previously_assigned_softbin.to_i - @softbin_ranges[temp].min
+           if previously_assigned_softbin == orig_options[:softbin].to_a[@pointer].to_s
              @pointer += options[:size]
-             given_softbin = orig_options[:softbin].to_a[@pointer]
+             assigned_softbin = orig_options[:softbin].to_a[@pointer]
            else
-             given_softbin = orig_options[:softbin].to_a[@pointer]
+             assigned_softbin = orig_options[:softbin].to_a[@pointer]
            end
-           @given_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
+           @assigned_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
          else
            @pointer = 0
            @softbin_ranges << orig_options[:softbin]
-           given_softbin = orig_options[:softbin].to_a[@pointer]
-           @given_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
+           assigned_softbin = orig_options[:softbin].to_a[@pointer]
+           @assigned_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
          end
-         options[:softbin] = given_softbin
+         options[:softbin] = assigned_softbin
        else
          options[:softbin] = options[:softbin]
        end
@@ -73,7 +73,7 @@ module TestIds
 
    # Load an existing allocator, which will be loaded with a configuration based on what has
    # been serialized into the database if present, otherwise it will have an empty configuration.
-   # Returns nil if the given database can not be found.
+   # Returns nil if the assigned database can not be found.
    # @api internal
    def load_allocator(id = nil)
      f = TestIds.database_file(id)
@@ -149,7 +149,7 @@ module TestIds
      end
    end
 
-   # Returns a full path to the database file for the given id, returns nil if
+   # Returns a full path to the database file for the assigned id, returns nil if
    # git storage has not been enabled
    def database_file(id)
      if repo

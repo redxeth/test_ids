@@ -129,15 +129,15 @@ module TestIds
       end
 
       # Update the supplied options hash that will be forwarded to the program generator
-      unless options.delete(:bin) == :none || config.send_to_ate == false
+      unless options.delete(:bin) == :none
         options[:bin] = bin['number']
         options[:bin_size] = bin['size']
       end
-      unless options.delete(:softbin) == :none || config.send_to_ate == false
+      unless options.delete(:softbin) == :none
         options[:softbin] = softbin['number']
         options[:softbin_size] = softbin['size']
       end
-      unless options.delete(:number) == :none || config.send_to_ate == false
+      unless options.delete(:number) == :none
         options[:number] = number['number']
         options[:number_size] = number['size']
       end

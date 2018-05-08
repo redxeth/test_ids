@@ -53,6 +53,7 @@ module TestIds
            @pointer = previously_assigned_softbin.to_i - @softbin_ranges[temp].min
            if previously_assigned_softbin == orig_options[:softbin].to_a[@pointer].to_s
              @pointer += options[:size]
+
              assigned_softbin = orig_options[:softbin].to_a[@pointer]
            else
              assigned_softbin = orig_options[:softbin].to_a[@pointer]
@@ -64,7 +65,13 @@ module TestIds
            assigned_softbin = orig_options[:softbin].to_a[@pointer]
            @assigned_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
          end
-         options[:softbin] = assigned_softbin
+
+         if assigned_softbin.between?(orig_options[:softbin].min, orig_options[:softbin].max)
+           options[:softbin] = assigned_softbin
+         else
+           fail 'Assigned Softbin Not In given Softbin Range'
+         end
+
        else
          options[:softbin] = options[:softbin]
        end

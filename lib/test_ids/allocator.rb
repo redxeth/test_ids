@@ -14,6 +14,46 @@ module TestIds
       @config = configuration
     end
 
+   # Allocates a softbin number from the range specified in the test flow
+   # It also keeps a track of the last softbin assigned out from a particular range
+   # and uses that to increment the pointers accordingly.
+   # If a numeric number is passed to the softbin, it uses that number.
+   # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
+   # For this method to work as intended.
+   def next_in_range(softbin, options)
+     unless options.nil?
+         range_item(options[:softbin], options)
+     end
+   end
+
+    def range_item(range, options)
+      orig_options = options.dup
+      rangehash = store['pointers']['ranges'] ||= {}
+      r ||= TestIds::Configuration::Item.new
+      r.include << range
+      if rangehash.has_key?(:"#{range}")
+        last_softbin = store['pointers']['softbin']
+        if last_softbin.between?(range.min, range.max)
+          @pointer = last_softbin - range.min
+        else
+          last_softbin = rangehash[:"#{range}"].to_i
+        end
+           if last_softbin == range.to_a[@pointer]
+             @pointer += options[:size]
+             assigned_softbin = range.to_a[@pointer]
+           else
+             assigned_softbin = range.to_a[@pointer]
+           end
+        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        store['pointers']['softbin'] = assigned_softbin
+      else
+        @pointer = 0
+        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        assigned_softbin = range.to_a[@pointer]
+        store['pointers']['softbin'] = assigned_softbin
+      end
+    end
+
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
@@ -111,7 +151,7 @@ module TestIds
         softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
         softbin['size'] ||= softbin_size
       elsif options[:softbin].is_a?(Range)
-        softbin['number'] ||= allocate_softbin(file: options[:file], bin: bin['number'], softbin: options[:softbin], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(bin: bin['number'], softbin: options[:softbin], size: softbin_size)
         softbin['size'] ||= softbin_size
         number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
         number['size'] ||= number_size
@@ -469,12 +509,22 @@ module TestIds
           fail "Unknown softbin algorithm: #{algo}"
         end
         number.to_i
+      # elsIf softbins is a callback and number does not reference softbin
+      #   callback.call(bin, num, options)
+      #
+      #
+      # elsIf softbins is a callback and number does reference softbin
+      #   callback.call(bin, options)
+      #
       elsif callback = config.softbins.callback
-        if softbin.is_a?(Range)
-          callback.call(bin, options)
-        else
-          callback.call(bin, num)
-        end
+             if config.numbers.algorithm
+               algo = config.numbers.algorithm.to_s.downcase
+               if algo.to_s =~ /^[bs\dx]+$/
+                  callback.call(bin, options)
+               else 
+                  callback.call(bin, num, options)
+               end 
+               end
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

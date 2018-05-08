@@ -15,12 +15,6 @@ module TestIds
   require 'test_ids/origen_testers/flow'
 
   class <<self
-   # Initialize
-   def initialize
-     @softbin_ranges ||= []
-     @assigned_softbins_by_range ||= {}
-   end
-
    # Allocates a number to the assigned test and returns a new hash containing
    # :bin, :softbin and :number keys.
    #
@@ -36,47 +30,11 @@ module TestIds
      }
    end
 
-   # Allocates a softbin number from the range specified in the test flow
-   # It also keeps a track of the last softbin assigned out from a particular range
-   # and uses that to increment the pointers accordingly.
-   # If a numeric number is passed to the softbin, it uses that number.
-   # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
-   # For this method to work as intended.
-   def next_in_range(bin, options)
-     initialize
-     unless options.nil?
-       if options[:softbin].is_a?(Range)
-         orig_options = options.dup
-         if @softbin_ranges.include? orig_options[:softbin]
-           previously_assigned_softbin = @assigned_softbins_by_range[:"#{orig_options[:softbin]}"]
-           temp = @softbin_ranges.index(orig_options[:softbin])
-           @pointer = previously_assigned_softbin.to_i - @softbin_ranges[temp].min
-           if previously_assigned_softbin == orig_options[:softbin].to_a[@pointer].to_s
-             @pointer += options[:size]
 
-             assigned_softbin = orig_options[:softbin].to_a[@pointer]
-           else
-             assigned_softbin = orig_options[:softbin].to_a[@pointer]
-           end
-           @assigned_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
-         else
-           @pointer = 0
-           @softbin_ranges << orig_options[:softbin]
-           assigned_softbin = orig_options[:softbin].to_a[@pointer]
-           @assigned_softbins_by_range.merge!("#{orig_options[:softbin]}": "#{orig_options[:softbin].to_a[@pointer]}")
-         end
-
-         if assigned_softbin.between?(orig_options[:softbin].min, orig_options[:softbin].max)
-           options[:softbin] = assigned_softbin
-         else
-           fail 'Assigned Softbin Not In given Softbin Range'
-         end
-
-       else
-         options[:softbin] = options[:softbin]
-       end
-     end
+   def next_in_range(range, options)
+	current_configuration.allocator.next_in_range(range, options)
    end
+    
 
    # Load an existing allocator, which will be loaded with a configuration based on what has
    # been serialized into the database if present, otherwise it will have an empty configuration.

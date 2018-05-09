@@ -14,39 +14,65 @@ module TestIds
       @config = configuration
     end
 
-   # Allocates a softbin number from the range specified in the test flow
-   # It also keeps a track of the last softbin assigned out from a particular range
-   # and uses that to increment the pointers accordingly.
-   # If a numeric number is passed to the softbin, it uses that number.
-   # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
-   # For this method to work as intended.
-   def next_in_range(softbin, options)
-     unless options.nil?
-         range_item(options[:softbin], options)
-     end
-   end
+    # Allocates a softbin number from the range specified in the test flow
+    # It also keeps a track of the last softbin assigned out from a particular range
+    # and uses that to increment the pointers accordingly.
+    # If a numeric number is passed to the softbin, it uses that number.
+    # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
+    # For this method to work as intended.
+    def next_in_range(softbin, options)
+      unless options.nil?
+        range_item(options[:softbin], options)
+      end
+    end
 
     def range_item(range, options)
       orig_options = options.dup
+      # Create an alias for the databse that stores the pointers per range
       rangehash = store['pointers']['ranges'] ||= {}
+      # Not really using the Item.new currently, but instantiating the BinArray regardless
+      # for future enhancement/use.
       r ||= TestIds::Configuration::Item.new
+      # Populate the BinArray with the range being passed.
       r.include << range
-      if rangehash.has_key?(:"#{range}")
+      # Check the database to see if the passed in range has already been included in the database hash
+      if rangehash.key?(:"#{range}")
+        # If the range already exists in the database, read out the last softbin given out for the flow across all ranges.
         last_softbin = store['pointers']['softbin']
+        # Check if the last softbin given out is within the range that is being passed now.
         if last_softbin.between?(range.min, range.max)
+          # If the last softbin is in range, calculate the pointer
+          # The pointer is calculated as a subtraction of the last_softbin from the range minimum value
+          # Ex: range = 10100..10199
+          #     last_softbin = 10101
+          #     @pointer = last_softbin - range.min (10101 - 10100) = 1
           @pointer = last_softbin - range.min
         else
+          # If the last_softbin is not in the given range, read out the database hash to see what
+          # the last_softbin given out was for that range.
+          # This hash is updated whenever a new softbin is assigned, so it should have the updated values for each range.
           last_softbin = rangehash[:"#{range}"].to_i
+          # Now calculate the new pointer.
+          @pointer = last_softbin - range.min
         end
-           if last_softbin == range.to_a[@pointer]
-             @pointer += options[:size]
-             assigned_softbin = range.to_a[@pointer]
-           else
-             assigned_softbin = range.to_a[@pointer]
-           end
+        # Check if the last_softbin given out is the same as the range[@pointer],
+        # if so increment pointer by softbin size, default size is 1, config.softbins.size is configurable.
+        # from example above, pointer was calculated as 1,range[1] is 10101 and is same as last_softbin, so pointer is incremented
+        # and new value is assigned to the softbin.
+        if last_softbin == range.to_a[@pointer]
+          @pointer += options[:size]
+          assigned_softbin = range.to_a[@pointer]
+        else
+          # Because of the pointer calculations above, I don't think it will ever reach here, has not in my test cases so far!
+          assigned_softbin = range.to_a[@pointer]
+        end
+        # Now update the database pointers to point to the lastest assigned softbin for a given range.
         rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        # Also update the database so that the latest given softbin across all ranges is the latest.
         store['pointers']['softbin'] = assigned_softbin
       else
+        # This is the case for a brand new range that has not been passed before
+        # We start from the first value as the assigned softbin and update the database to reflect.
         @pointer = 0
         rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
         assigned_softbin = range.to_a[@pointer]
@@ -517,14 +543,16 @@ module TestIds
       #   callback.call(bin, options)
       #
       elsif callback = config.softbins.callback
-             if config.numbers.algorithm
-               algo = config.numbers.algorithm.to_s.downcase
-               if algo.to_s =~ /^[bs\dx]+$/
-                  callback.call(bin, options)
-               else 
-                  callback.call(bin, num, options)
-               end 
-               end
+        if config.numbers.algorithm
+          algo = config.numbers.algorithm.to_s.downcase
+          if algo.to_s =~ /^[bs\dx]+$/
+            callback.call(bin, options)
+          else
+            callback.call(bin, num, options)
+          end
+        else
+          callback.call(bin, num, options)
+        end
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

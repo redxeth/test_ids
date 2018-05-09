@@ -30,10 +30,6 @@ module TestIds
      }
    end
 
-   def next_in_range(range, options)
-     current_configuration.allocator.next_in_range(range, options)
-   end
-
    # Load an existing allocator, which will be loaded with a configuration based on what has
    # been serialized into the database if present, otherwise it will have an empty configuration.
    # Returns nil if the assigned database can not be found.
@@ -213,6 +209,10 @@ module TestIds
 
    def testing?
      !!@testing
+   end
+
+   def next_in_range(range, options)
+     current_configuration.allocator.next_in_range(range, options)
    end
   end
 end

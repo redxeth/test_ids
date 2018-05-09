@@ -15,10 +15,10 @@ module TestIds
   require 'test_ids/origen_testers/flow'
 
   class <<self
-   # Allocates a number to the assigned test and returns a new hash containing
+   # Allocates a number to the given test and returns a new hash containing
    # :bin, :softbin and :number keys.
    #
-   # The assigned options hash is not modified by calling this method.
+   # The given options hash is not modified by calling this method.
    #
    # Use the same arguments as you would normally pass to flow.test, the numbers
    # returned will be the same as would be injected into flow.test.
@@ -32,7 +32,7 @@ module TestIds
 
    # Load an existing allocator, which will be loaded with a configuration based on what has
    # been serialized into the database if present, otherwise it will have an empty configuration.
-   # Returns nil if the assigned database can not be found.
+   # Returns nil if the given database can not be found.
    # @api internal
    def load_allocator(id = nil)
      f = TestIds.database_file(id)
@@ -108,7 +108,7 @@ module TestIds
      end
    end
 
-   # Returns a full path to the database file for the assigned id, returns nil if
+   # Returns a full path to the database file for the given id, returns nil if
    # git storage has not been enabled
    def database_file(id)
      if repo

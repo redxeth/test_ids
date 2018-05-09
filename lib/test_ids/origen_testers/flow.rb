@@ -11,9 +11,11 @@ module OrigenTesters
       if TestIds.configured? && options[:test_ids] != :notrack
         TestIds.current_configuration.allocator.allocate(instance, options)
       end
-      if TestIds.current_configuration.send_to_ate == false
-        BIN_OPTS.each do |opt|
-          options.delete(opt)
+      if TestIds.configured?
+        if TestIds.current_configuration.send_to_ate == false
+          BIN_OPTS.each do |opt|
+            options.delete(opt)
+          end
         end
       end
       _orig_test(instance, options)

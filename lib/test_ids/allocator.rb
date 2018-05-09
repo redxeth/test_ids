@@ -98,21 +98,21 @@ module TestIds
       end
 
       # Otherwise generate the missing ones
-      bin['number'] ||= allocate_bin(size: bin_size)
+      bin['number'] ||= allocate_bin(size: bin_size, options: options)
       bin['size'] ||= bin_size
       # If the softbin is based on the test number, then need to calculate the
       # test number first.
       # Also do the number first if the softbin is a callback and the number is not.
       if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
          (config.softbins.callback && !config.numbers.function?)
-        number['number'] ||= allocate_number(bin: bin['number'], size: number_size)
+        number['number'] ||= allocate_number(bin: bin['number'], size: number_size, options: options)
         number['size'] ||= number_size
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size, options: options)
         softbin['size'] ||= softbin_size
       else
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size, options: options)
         softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size, options: options)
         number['size'] ||= number_size
       end
 
@@ -461,7 +461,7 @@ module TestIds
         end
         number.to_i
       elsif callback = config.softbins.callback
-        callback.call(bin, num)
+        callback.call(bin, num, options)
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)
@@ -545,7 +545,7 @@ module TestIds
           fail "Unknown test number algorithm: #{algo}"
         end
       elsif callback = config.numbers.callback
-        callback.call(bin, softbin)
+        callback.call(bin, softbin, options)
       else
         if store['pointers']['numbers'] == 'done'
           reclaim_number(options)

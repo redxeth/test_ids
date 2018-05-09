@@ -88,7 +88,6 @@ module TestIds
       @callbacks = []
       name = extract_test_name(instance, options)
       name = "#{name}_#{options[:index]}" if options[:index]
-      options[:file] = file
 
       # First work out the test ID to be used for each of the numbers, and how many numbers
       # should be reserved

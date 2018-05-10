@@ -56,8 +56,8 @@ module TestIds
         assigned_value = range.to_a[@pointer]
       end
       unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)
-       Origen.log.error "Assigned value not in range"
-       fail
+        Origen.log.error 'Assigned value not in range'
+        fail
       end
       assigned_value
     end

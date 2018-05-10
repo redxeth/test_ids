@@ -15,156 +15,156 @@ module TestIds
   require 'test_ids/origen_testers/flow'
 
   class <<self
-   # Allocates a number to the given test and returns a new hash containing
-   # :bin, :softbin and :number keys.
-   #
-   # The given options hash is not modified by calling this method.
-   #
-   # Use the same arguments as you would normally pass to flow.test, the numbers
-   # returned will be the same as would be injected into flow.test.
-   def allocate(instance, options = {})
-     opts = options.dup
-     current_configuration.allocator.allocate(instance, opts)
-     { bin: opts[:bin], bin_size: opts[:bin_size], softbin: opts[:softbin], softbin_size: opts[:softbin_size],
-       number: opts[:number], number_size: opts[:number_size]
-     }
-   end
+    # Allocates a number to the given test and returns a new hash containing
+    # :bin, :softbin and :number keys.
+    #
+    # The given options hash is not modified by calling this method.
+    #
+    # Use the same arguments as you would normally pass to flow.test, the numbers
+    # returned will be the same as would be injected into flow.test.
+    def allocate(instance, options = {})
+      opts = options.dup
+      current_configuration.allocator.allocate(instance, opts)
+      { bin: opts[:bin], bin_size: opts[:bin_size], softbin: opts[:softbin], softbin_size: opts[:softbin_size],
+        number: opts[:number], number_size: opts[:number_size]
+      }
+    end
 
-   # Load an existing allocator, which will be loaded with a configuration based on what has
-   # been serialized into the database if present, otherwise it will have an empty configuration.
-   # Returns nil if the given database can not be found.
-   # @api internal
-   def load_allocator(id = nil)
-     f = TestIds.database_file(id)
-     if File.exist?(f)
-       a = Configuration.new(id).allocator
-       a.load_configuration_from_store
-       a
-     end
-   end
+    # Load an existing allocator, which will be loaded with a configuration based on what has
+    # been serialized into the database if present, otherwise it will have an empty configuration.
+    # Returns nil if the given database can not be found.
+    # @api internal
+    def load_allocator(id = nil)
+      f = TestIds.database_file(id)
+      if File.exist?(f)
+        a = Configuration.new(id).allocator
+        a.load_configuration_from_store
+        a
+      end
+    end
 
-   def current_configuration
-     configuration(@configuration_id)
-   end
+    def current_configuration
+      configuration(@configuration_id)
+    end
 
-   def configuration(id)
-     return @configuration[id] if @configuration && @configuration[id]
-     fail('You have to create the configuration first before you can access it')
-   end
-   alias_method :config, :configuration
+    def configuration(id)
+      return @configuration[id] if @configuration && @configuration[id]
+      fail('You have to create the configuration first before you can access it')
+    end
+    alias_method :config, :configuration
 
-   def configure(id = nil, options = {})
-     id, options = nil, id if id.is_a?(Hash)
+    def configure(id = nil, options = {})
+      id, options = nil, id if id.is_a?(Hash)
 
-     @configuration_id = id || options[:id] || :not_specified
+      @configuration_id = id || options[:id] || :not_specified
 
-     @configuration ||= {}
+      @configuration ||= {}
 
-     return if @configuration[@configuration_id]
+      return if @configuration[@configuration_id]
 
-     @configuration[@configuration_id] = Configuration.new(@configuration_id)
+      @configuration[@configuration_id] = Configuration.new(@configuration_id)
 
-     config = @configuration[@configuration_id]
+      config = @configuration[@configuration_id]
 
-     yield config
+      yield config
 
-     config.validate!
+      config.validate!
 
-     initialize_git
-   end
+      initialize_git
+    end
 
-   ## Can be called in place of TestIDs.configure to change the configuration from
-   ## the one that was originally supplied.
-   ## It is expected that this is mainly useful for testing purposes only.
-   # def reconfigure(id = nil, options = {}, &block)
-   #  id, options = nil, id if id.is_a?(Hash)
+    ## Can be called in place of TestIDs.configure to change the configuration from
+    ## the one that was originally supplied.
+    ## It is expected that this is mainly useful for testing purposes only.
+    # def reconfigure(id = nil, options = {}, &block)
+    #  id, options = nil, id if id.is_a?(Hash)
 
-   #  @configuration_id = id || options[:id] || :not_specified
+    #  @configuration_id = id || options[:id] || :not_specified
 
-   #  @configuration ||= {}
+    #  @configuration ||= {}
 
-   #  old = @configuration[@configuration_id]
-   #  new = Configuration.new(@configuration_id)
-   #  new.instance_variable_set('@allocator', old.allocator)
-   #  new.allocator.instance_variable_set('@config', new)
-   #  @configuration[@configuration_id] =  new
+    #  old = @configuration[@configuration_id]
+    #  new = Configuration.new(@configuration_id)
+    #  new.instance_variable_set('@allocator', old.allocator)
+    #  new.allocator.instance_variable_set('@config', new)
+    #  @configuration[@configuration_id] =  new
 
-   #  yield new
+    #  yield new
 
-   #  new.validate!
-   # end
+    #  new.validate!
+    # end
 
-   def configured?
-     !!@configuration_id
-   end
+    def configured?
+      !!@configuration_id
+    end
 
-   def initialize_git
-     @git_initialized ||= begin
-       if repo
-         @git = Git.new(local: git_database_dir, remote: repo)
-         git.get_lock if publish?
-       end
-       true
-     end
-   end
+    def initialize_git
+      @git_initialized ||= begin
+        if repo
+          @git = Git.new(local: git_database_dir, remote: repo)
+          git.get_lock if publish?
+        end
+        true
+      end
+    end
 
-   # Returns a full path to the database file for the given id, returns nil if
-   # git storage has not been enabled
-   def database_file(id)
-     if repo
-       if id == :not_specified || !id || id == ''
-         f = 'store.json'
-       else
-         f = "store_#{id.to_s.downcase}.json"
-       end
-       "#{git_database_dir}/#{f}"
-     end
-   end
+    # Returns a full path to the database file for the given id, returns nil if
+    # git storage has not been enabled
+    def database_file(id)
+      if repo
+        if id == :not_specified || !id || id == ''
+          f = 'store.json'
+        else
+          f = "store_#{id.to_s.downcase}.json"
+        end
+        "#{git_database_dir}/#{f}"
+      end
+    end
 
-   def git_database_dir
-     @git_database_dir ||= begin
-       d = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(repo).basename}"
-       FileUtils.mkdir_p(d)
-       d
-     end
-   end
+    def git_database_dir
+      @git_database_dir ||= begin
+        d = "#{Origen.app.imports_directory}/test_ids/#{Pathname.new(repo).basename}"
+        FileUtils.mkdir_p(d)
+        d
+      end
+    end
 
-   def git
-     @git
-   end
+    def git
+      @git
+    end
 
-   def repo=(val)
-     return if @repo && @repo == val
-     if @repo && @repo != val
-       fail 'You can only use a single test ids repository per program generation run, one per application is recommended'
-     end
-     if @configuration
-       fail 'TestIds.repo must be set before creating the first configuration'
-     end
-     @repo = val
-   end
+    def repo=(val)
+      return if @repo && @repo == val
+      if @repo && @repo != val
+        fail 'You can only use a single test ids repository per program generation run, one per application is recommended'
+      end
+      if @configuration
+        fail 'TestIds.repo must be set before creating the first configuration'
+      end
+      @repo = val
+    end
 
-   def repo
-     @repo
-   end
+    def repo
+      @repo
+    end
 
-   def publish?
-     @publish ? @publish == :save : true
-   end
+    def publish?
+      @publish ? @publish == :save : true
+    end
 
-   def publish=(val)
-     return if @publish && publish? == val
-     if @publish && publish? != val
-       fail 'You can only use a single setting for publish per program generation run'
-     end
-     if @configuration
-       fail 'TestIds.publish must be set before creating the first configuration'
-     end
-     unless [true, false].include?(val)
-       fail 'TestIds.publish must be set to either true or false'
-     end
-     @publish = val ? :save : :dont_save
-   end
+    def publish=(val)
+      return if @publish && publish? == val
+      if @publish && publish? != val
+        fail 'You can only use a single setting for publish per program generation run'
+      end
+      if @configuration
+        fail 'TestIds.publish must be set before creating the first configuration'
+      end
+      unless [true, false].include?(val)
+        fail 'TestIds.publish must be set to either true or false'
+      end
+      @publish = val ? :save : :dont_save
+    end
 
    def next_in_range(range, options)
      current_configuration.allocator.next_in_range(range, options)
@@ -186,33 +186,33 @@ module TestIds
 
     private
 
-   def on_origen_shutdown
-     if !testing? && @configuration
-       if repo
-         @configuration.each do |id, config|
-           config.allocator.save
-         end
-         git.publish if publish?
-       end
-     end
-   end
+    def on_origen_shutdown
+      if !testing? && @configuration
+        if repo
+          @configuration.each do |id, config|
+            config.allocator.save
+          end
+          git.publish if publish?
+        end
+      end
+    end
 
-   # For testing, clears all instances including the configuration
-   def reset
-     @git = nil
-     @configuration = nil
-   end
+    # For testing, clears all instances including the configuration
+    def reset
+      @git = nil
+      @configuration = nil
+    end
 
-   def clear_configuration_id
-     @configuration_id = nil
-   end
+    def clear_configuration_id
+      @configuration_id = nil
+    end
 
-   def testing=(val)
-     @testing = val
-   end
+    def testing=(val)
+      @testing = val
+    end
 
-   def testing?
-     !!@testing
-   end
+    def testing?
+      !!@testing
+    end
   end
 end

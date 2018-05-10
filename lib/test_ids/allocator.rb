@@ -30,7 +30,7 @@ module TestIds
       orig_options = options.dup
       # Create an alias for the databse that stores the pointers per range
       rangehash = store['pointers']['ranges'] ||= {}
-      # Setup an identifier to store in the databas, dont really care if it is a bin, softbin or number at this point.
+      # Setup an identifier to store in the database, dont really care if it is a bin, softbin or number at this point.
       identifier = "last_assigned_value_from_given_range"
       # Initialize the identifier array in the database, just used to store the last assigned value from a given range
       store['pointers'][identifier] ||= [] 

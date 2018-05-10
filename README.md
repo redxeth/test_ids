@@ -217,6 +217,54 @@ func :my_func_16mhz, bin: :my_func
 ~~~
 
 
+### Using specified ranges (Beta Feature)
+
+A new limited feature has been added to the plugin. It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
+
+Application side, the user needs to make sure that a check if in place in the interface to confirm that the softbin/bin/numbers being passed to a function or method are not nil.
+
+Example: if number is a function of both softbin and bin, and softbin uses specific ranges, the following will be required in the configuration
+
+~~~ruby
+config.numbers do |bin, softbin|
+ unless softbin.nil?
+  (softbin * 10) + bin 
+ end 
+end
+~~~
+
+
+To enable specific ranges for SoftBins the TestId configuration will be as follows: 
+
+~~~ruby
+
+     if options[:environment] == :probe
+        TestIds.configure :wafer_test do |config|
+          config.softbins.size = 5
+          config.softbins do |bin, options|
+           if !options[:softbin_range].nil? && options[:softbin_range].is_a?(Range) 
+            TestIds.next_in_range(options[:softbin_range],options)
+           end
+          end
+        end
+        # else different environment settings
+      end
+
+~~~
+
+Please be aware use of specific ranges for more than one TYPE (bin/softbin/numbers) in the configurations has not yet been verified and will most likely need further enhancements to this method.
+
+*Also if the current provided range is not sufficient, the plugin will display an Origen error log warning and raise an exception, thus stopping generation until the range is increased.*
+
+~~~ruby
+[ERROR]      2.500[0.051]    || Assigned value not in range
+
+COMPLETE CALL STACK
+-------------------
+
+~~~
+
+
 ## Storage
 
 The main benefit of this plugin is to get consistent number assignments across different invocations of the program

@@ -516,16 +516,7 @@ module TestIds
       #   callback.call(bin, options)
       #
       elsif callback = config.softbins.callback
-        if config.numbers.algorithm
-          algo = config.numbers.algorithm.to_s.downcase
-          if algo.to_s =~ /^[bs\dx]+$/
-            callback.call(bin, options)
-          else
-            callback.call(bin, num, options)
-          end
-        else
-          callback.call(bin, num, options)
-        end
+       callback.call(bin, options)
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

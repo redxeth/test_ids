@@ -475,7 +475,6 @@ module TestIds
     def allocate_softbin(options)
       bin = options[:bin]
       num = options[:number]
-      softbin = options[:softbin] if options[:softbin]
       return nil if config.softbins.empty?
       if config.softbins.algorithm
         algo = config.softbins.algorithm.to_s.downcase

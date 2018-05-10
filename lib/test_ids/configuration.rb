@@ -150,7 +150,7 @@ module TestIds
       {
         'bins'     => bins,
         'softbins' => softbins,
-        'numbers'  => numbers,
+        'numbers'  => numbers
       }.to_json(*a)
     end
 

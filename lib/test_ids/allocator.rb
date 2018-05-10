@@ -21,24 +21,13 @@ module TestIds
     # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
     # For this method to work as intended.
     def next_in_range(range, options)
-      unless options.nil?
-        range_item(range, options)
-      end
+      range_item(range, options)
     end
 
     def range_item(range, options)
       orig_options = options.dup
       # Create an alias for the databse that stores the pointers per range
       rangehash = store['pointers']['ranges'] ||= {}
-      # Setup an identifier to store in the database, dont really care if it is a bin, softbin or number at this point.
-      identifier = "last_assigned_value_from_given_range"
-      # Initialize the identifier array in the database, just used to store the last assigned value from a given range
-      store['pointers'][identifier] ||= [] 
-      # Not really using the Item.new currently, but instantiating the BinArray regardless
-      # for future enhancement/use.
-      r ||= TestIds::Configuration::Item.new
-      # Populate the BinArray with the range being passed.
-      r.include << range
       # Check the database to see if the passed in range has already been included in the database hash
       if rangehash.key?(:"#{range}")
         # Read out the database hash to see what the last_softbin given out was for that range.
@@ -59,16 +48,14 @@ module TestIds
         end
         # Now update the database pointers to point to the lastest assigned softbin for a given range.
         rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
-        # Also update the database so that the latest given softbin across all ranges is the latest.
-         store['pointers'][identifier] = assigned_value
       else
         # This is the case for a brand new range that has not been passed before
         # We start from the first value as the assigned softbin and update the database to reflect.
         @pointer = 0
         rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
         assigned_value = range.to_a[@pointer]
-        store['pointers'][identifier] = assigned_value
       end
+      assigned_value
     end
 
     # Main method to inject generated bin and test numbers, the given

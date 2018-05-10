@@ -209,7 +209,6 @@ module TestIds
               t['bin'][name] = { 'number' => numbers['bin'], 'size' => 1 }
               t['softbin'][name] = { 'number' => numbers['softbin'], 'size' => 1 }
               t['number'][name] = { 'number' => numbers['number'], 'size' => 1 }
-              t['ranges'][name] = { 'ranges' => numbers['ranges'], 'size' => 1 }
             end
             s = {
               'format_revision'   => 1,
@@ -225,7 +224,7 @@ module TestIds
             s = {
               'format_revision'   => 2,
               'configuration'     => nil,
-              'pointers'          => { 'bins' => s['pointers']['bin'], 'softbins' => s['pointers']['softbin'], 'numbers' => s['pointers']['number'], 'ranges' => s['pointers']['ranges'] },
+              'pointers'          => { 'bins' => s['pointers']['bin'], 'softbins' => s['pointers']['softbin'], 'numbers' => s['pointers']['number'] },
               'assigned'          => { 'bins' => s['assigned']['bin'], 'softbins' => s['assigned']['softbin'], 'numbers' => s['assigned']['number'] },
               'manually_assigned' => { 'bins' => s['manually_assigned']['bin'], 'softbins' => s['manually_assigned']['softbin'], 'numbers' => s['manually_assigned']['number'] },
               'references'        => { 'bins' => s['references']['bin'], 'softbins' => s['references']['softbin'], 'numbers' => s['references']['number'] }
@@ -235,13 +234,12 @@ module TestIds
           @last_bin = s['pointers']['bins']
           @last_softbin = s['pointers']['softbins']
           @last_number = s['pointers']['numbers']
-          @last_softbin_by_ranges = s['pointers']['ranges']
           s
         else
           {
             'format_revision'   => STORE_FORMAT_REVISION,
             'configuration'     => nil,
-            'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil, 'ranges' => nil },
+            'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil },
             'assigned'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'manually_assigned' => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },
             'references'        => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} }

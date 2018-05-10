@@ -204,7 +204,7 @@ module TestIds
         if s
           unless s['format_revision']
             # Upgrade the original store format
-            t = { 'bin' => {}, 'softbin' => {}, 'number' => {}, 'ranges' => {} }
+            t = { 'bin' => {}, 'softbin' => {}, 'number' => {} }
             s['tests'].each do |name, numbers|
               t['bin'][name] = { 'number' => numbers['bin'], 'size' => 1 }
               t['softbin'][name] = { 'number' => numbers['softbin'], 'size' => 1 }

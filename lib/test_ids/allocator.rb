@@ -146,21 +146,21 @@ module TestIds
       end
 
       # Otherwise generate the missing ones
-      bin['number'] ||= allocate_bin(size: bin_size)
+      bin['number'] ||= allocate_bin(options.merge(size: bin_size))
       bin['size'] ||= bin_size
       # If the softbin is based on the test number, then need to calculate the
       # test number first.
       # Also do the number first if the softbin is a callback and the number is not.
       if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
          (config.softbins.callback && !config.numbers.function?)
-        number['number'] ||= allocate_number(bin: bin['number'], size: number_size)
+        number['number'] ||= allocate_number(options.merge(bin: bin['number'], size: number_size))
         number['size'] ||= number_size
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], number: number['number'], size: softbin_size))
         softbin['size'] ||= softbin_size
       else
         softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], size: softbin_size))
         softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+        number['number'] ||= allocate_number(options.merge(bin: bin['number'], softbin: softbin['number'], size: number_size))
         number['size'] ||= number_size
       end
 

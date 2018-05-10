@@ -55,6 +55,10 @@ module TestIds
         rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
         assigned_value = range.to_a[@pointer]
       end
+      unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)
+       Origen.log.error "Assigned value not in range"
+       fail
+      end
       assigned_value
     end
 
@@ -153,13 +157,8 @@ module TestIds
         number['size'] ||= number_size
         softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
         softbin['size'] ||= softbin_size
-      elsif options[:softbin].is_a?(Range)
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], softbin: options[:softbin], size: softbin_size)
-        softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
-        number['size'] ||= number_size
       else
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], size: softbin_size))
         softbin['size'] ||= softbin_size
         number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
         number['size'] ||= number_size

@@ -349,7 +349,7 @@ module TestIds
           f.puts '//    // If some number are still to be allocated, these point to the last number given out.'
           f.puts '//    // If all numbers have been allocated and we are now on the reclamation phase, the pointer'
           f.puts '//    // will contain "done".'
-          f.puts "//    'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil },"
+          f.puts "//    'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil, 'ranges' => nil },"
           f.puts '//'
           f.puts '//    // This is the record of all numbers which have been previously assigned.'
           f.puts "//    'assigned'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },"

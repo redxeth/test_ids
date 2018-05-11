@@ -281,6 +281,8 @@ Similar configurations are available for bins and numbers as well.
 
 Please be aware use of specific ranges for more than one TYPE (bin/softbin/numbers) in the configurations has not yet been verified and will most likely need further enhancements to this method.
 
+For more examples, please look at the examples in spec/specific_ranges.rb file
+
 *Also if the current provided range is not sufficient, the plugin will display an Origen error log warning and raise an exception, thus stopping generation until the range is increased.*
 
 ~~~ruby

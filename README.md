@@ -68,11 +68,11 @@ flow.test my_test, bin: 10, test_ids: :notrack
 The various ID types are generated in the following order which places some constraints on the configuration options
 available to each one:
 
-* **bin** - These are generated first, and therefore can only be configured to be generated from a range
+* **bin** - These are generated first, and therefore can only be configured to be generated from a range. They can also be generated from a specific range per test. Please see Using specific ranges below.
 * **softbin** - These come next, and they can be generated from a range or from either a template or a function which
-  references the bin number
+  references the bin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
 * **number** - The test number comes last, and they can be generated from a range or from either a template or a function which
-  references the bin number and/or softbin number
+  references the bin number and/or softbin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
 
 ### Assigning a Range
 
@@ -219,6 +219,8 @@ func :my_func_16mhz, bin: :my_func
 
 ### Using specified ranges (Beta Feature)
 
+**It is assumed that in the configuration the user will configure the bins first, softbins next and numbers last**
+
 A new limited feature has been added to the plugin. It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
 
 Application side, the user needs to make sure that a check if in place in the interface to confirm that the softbin/bin/numbers being passed to a function or method are not nil.
@@ -249,6 +251,31 @@ To enable specific ranges for SoftBins the TestId configuration will be as follo
         end
         # else different environment settings
       end
+
+~~~
+
+Similar configurations are available for bins and numbers as well.
+
+~~~ruby
+
+    TestIds.configure do |config|
+      config.bins do |options|
+       if options[:bin_range].is_a?(Range)
+        TestIds.next_in_range(options[:bin_range], options)
+       end
+     end 
+~~~
+
+~~~ruby
+
+    TestIds.configure do |config|
+      config.bins.include << (1..4)
+      config.softbins.include << (500..600)
+      config.numbers do |bin, softbin, options|
+       if options[:number_range].is_a?(Range)
+        TestIds.next_in_range(options[:number_range], options)
+       end
+     end 
 
 ~~~
 

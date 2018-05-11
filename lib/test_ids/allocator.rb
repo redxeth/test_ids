@@ -427,9 +427,14 @@ module TestIds
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out
     def allocate_bin(options)
-      return nil if config.bins.empty?
+    # Not sure if this is the right way. IMO the following are true: 
+    # 1. config.bins will have a callback only when ranges are specified.
+    # 2. If config.bins is empty but config.bins is not a callback, return nil to maintain functionality as before.
+      return nil if config.bins.empty? && !config.bins.callback  
       if store['pointers']['bins'] == 'done'
         reclaim_bin(options)
+      elsif callback = config.bins.callback
+        callback.call(options)
       else
         b = config.bins.include.next(after: @last_bin, size: options[:size])
         @last_bin = nil
@@ -508,13 +513,6 @@ module TestIds
           fail "Unknown softbin algorithm: #{algo}"
         end
         number.to_i
-      # elsIf softbins is a callback and number does not reference softbin
-      #   callback.call(bin, num, options)
-      #
-      #
-      # elsIf softbins is a callback and number does reference softbin
-      #   callback.call(bin, options)
-      #
       elsif callback = config.softbins.callback
        callback.call(bin, options)
       else
@@ -600,7 +598,7 @@ module TestIds
           fail "Unknown test number algorithm: #{algo}"
         end
       elsif callback = config.numbers.callback
-        callback.call(bin, softbin)
+        callback.call(bin, softbin, options)
       else
         if store['pointers']['numbers'] == 'done'
           reclaim_number(options)

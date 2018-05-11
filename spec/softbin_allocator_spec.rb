@@ -241,21 +241,4 @@ describe "The softbin allocator" do
     t = a(:t6)
     t[:softbin].should == 15
   end
-
-   it "Softbin Ranges can be used to assign softbins" do
-    TestIds.configure do |config|
-      config.softbins do |bin, options|
-       if options[:softbin_range].is_a?(Range)
-        TestIds.next_in_range(options[:softbin_range], options)
-       end
-     end 
-
-      config.numbers = :sx
-
-    a(:t1, bin: 10, softbin_range: (1..4))[:softbin].should == 1
-    a(:t2, bin: 20, softbin_range: (1..4))[:softbin].should == 2
-    a(:t3, bin: 30, softbin_range: (1..4))[:softbin].should == 3
-    a(:t4, bin: 40, softbin_range: (1..4))[:softbin].should == 4
-   end
-  end
 end

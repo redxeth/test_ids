@@ -88,8 +88,12 @@ module TestIds
       @id
     end
 
-    def bins
+    def bins(&block)
       @bins ||= Item.new
+      if block_given?
+        @bins.callback(&block)
+      end
+      @bins
     end
 
     def softbins(&block)
@@ -130,9 +134,6 @@ module TestIds
       unless validated?
         if bins.algorithm
           fail 'The TestIds bins configuration cannot be set to an algorithm, only a range set by bins.include and bins.exclude is permitted'
-        end
-        if bins.callback
-          fail 'The TestIds bins configuration cannot be set by a callback, only a range set by bins.include and bins.exclude is permitted'
         end
         @validated = true
         freeze

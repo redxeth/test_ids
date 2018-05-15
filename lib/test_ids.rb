@@ -166,6 +166,10 @@ module TestIds
       @publish = val ? :save : :dont_save
     end
 
+    def next_in_range(range, options)
+      current_configuration.allocator.next_in_range(range, options)
+    end
+
     ## When set to true, all numbers generated will be checked to see if they comply
     ## with the current configuration, and if not they will be re-assigned based on the
     ## current configuration

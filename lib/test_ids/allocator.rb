@@ -14,6 +14,54 @@ module TestIds
       @config = configuration
     end
 
+    # Allocates a softbin number from the range specified in the test flow
+    # It also keeps a track of the last softbin assigned out from a particular range
+    # and uses that to increment the pointers accordingly.
+    # If a numeric number is passed to the softbin, it uses that number.
+    # The configuration for the TestId plugin needs to pass in the bin number and the options from the test flow
+    # For this method to work as intended.
+    def next_in_range(range, options)
+      range_item(range, options)
+    end
+
+    def range_item(range, options)
+      orig_options = options.dup
+      # Create an alias for the databse that stores the pointers per range
+      rangehash = store['pointers']['ranges'] ||= {}
+      # Check the database to see if the passed in range has already been included in the database hash
+      if rangehash.key?(:"#{range}")
+        # Read out the database hash to see what the last_softbin given out was for that range.
+        # This hash is updated whenever a new softbin is assigned, so it should have the updated values for each range.
+        previous_assigned_value = rangehash[:"#{range}"].to_i
+        # Now calculate the new pointer.
+        @pointer = previous_assigned_value - range.min
+        # Check if the last_softbin given out is the same as the range[@pointer],
+        # if so increment pointer by softbin size, default size is 1, config.softbins.size is configurable.
+        # from example above, pointer was calculated as 1,range[1] is 10101 and is same as last_softbin, so pointer is incremented
+        # and new value is assigned to the softbin.
+        if previous_assigned_value == range.to_a[@pointer]
+          @pointer += options[:size]
+          assigned_value = range.to_a[@pointer]
+        else
+          # Because of the pointer calculations above, I don't think it will ever reach here, has not in my test cases so far!
+          assigned_value = range.to_a[@pointer]
+        end
+        # Now update the database pointers to point to the lastest assigned softbin for a given range.
+        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+      else
+        # This is the case for a brand new range that has not been passed before
+        # We start from the first value as the assigned softbin and update the database to reflect.
+        @pointer = 0
+        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        assigned_value = range.to_a[@pointer]
+      end
+      unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)
+        Origen.log.error 'Assigned value not in range'
+        fail
+      end
+      assigned_value
+    end
+
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
@@ -98,21 +146,21 @@ module TestIds
       end
 
       # Otherwise generate the missing ones
-      bin['number'] ||= allocate_bin(size: bin_size)
+      bin['number'] ||= allocate_bin(options.merge(size: bin_size))
       bin['size'] ||= bin_size
       # If the softbin is based on the test number, then need to calculate the
       # test number first.
       # Also do the number first if the softbin is a callback and the number is not.
       if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
          (config.softbins.callback && !config.numbers.function?)
-        number['number'] ||= allocate_number(bin: bin['number'], size: number_size)
+        number['number'] ||= allocate_number(options.merge(bin: bin['number'], size: number_size))
         number['size'] ||= number_size
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], number: number['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], number: number['number'], size: softbin_size))
         softbin['size'] ||= softbin_size
       else
-        softbin['number'] ||= allocate_softbin(bin: bin['number'], size: softbin_size)
+        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], size: softbin_size))
         softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(bin: bin['number'], softbin: softbin['number'], size: number_size)
+        number['number'] ||= allocate_number(options.merge(bin: bin['number'], softbin: softbin['number'], size: number_size))
         number['size'] ||= number_size
       end
 
@@ -301,7 +349,7 @@ module TestIds
           f.puts '//    // If some number are still to be allocated, these point to the last number given out.'
           f.puts '//    // If all numbers have been allocated and we are now on the reclamation phase, the pointer'
           f.puts '//    // will contain "done".'
-          f.puts "//    'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil },"
+          f.puts "//    'pointers'          => { 'bins' => nil, 'softbins' => nil, 'numbers' => nil, 'ranges' => nil },"
           f.puts '//'
           f.puts '//    // This is the record of all numbers which have been previously assigned.'
           f.puts "//    'assigned'          => { 'bins' => {}, 'softbins' => {}, 'numbers' => {} },"
@@ -379,9 +427,14 @@ module TestIds
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out
     def allocate_bin(options)
-      return nil if config.bins.empty?
+      # Not sure if this is the right way. IMO the following are true:
+      # 1. config.bins will have a callback only when ranges are specified.
+      # 2. If config.bins is empty but config.bins is not a callback, return nil to maintain functionality as before.
+      return nil if config.bins.empty? && !config.bins.callback
       if store['pointers']['bins'] == 'done'
         reclaim_bin(options)
+      elsif callback = config.bins.callback
+        callback.call(options)
       else
         b = config.bins.include.next(after: @last_bin, size: options[:size])
         @last_bin = nil
@@ -461,7 +514,7 @@ module TestIds
         end
         number.to_i
       elsif callback = config.softbins.callback
-        callback.call(bin, num)
+        callback.call(bin, options)
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)
@@ -545,7 +598,7 @@ module TestIds
           fail "Unknown test number algorithm: #{algo}"
         end
       elsif callback = config.numbers.callback
-        callback.call(bin, softbin)
+        callback.call(bin, softbin, options)
       else
         if store['pointers']['numbers'] == 'done'
           reclaim_number(options)

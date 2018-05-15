@@ -427,10 +427,10 @@ module TestIds
     # Returns the next available bin in the pool, if they have all been given out
     # the one that hasn't been used for the longest time will be given out
     def allocate_bin(options)
-    # Not sure if this is the right way. IMO the following are true: 
-    # 1. config.bins will have a callback only when ranges are specified.
-    # 2. If config.bins is empty but config.bins is not a callback, return nil to maintain functionality as before.
-      return nil if config.bins.empty? && !config.bins.callback  
+      # Not sure if this is the right way. IMO the following are true:
+      # 1. config.bins will have a callback only when ranges are specified.
+      # 2. If config.bins is empty but config.bins is not a callback, return nil to maintain functionality as before.
+      return nil if config.bins.empty? && !config.bins.callback
       if store['pointers']['bins'] == 'done'
         reclaim_bin(options)
       elsif callback = config.bins.callback
@@ -514,7 +514,7 @@ module TestIds
         end
         number.to_i
       elsif callback = config.softbins.callback
-       callback.call(bin, options)
+        callback.call(bin, options)
       else
         if store['pointers']['softbins'] == 'done'
           reclaim_softbin(options)

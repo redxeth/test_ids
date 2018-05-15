@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Origen-SDK/test_ids.svg?branch=master)](https://travis-ci.org/Origen-SDK/test_ids)
+[![Coverage Status](https://coveralls.io/repos/github/Origen-SDK/test_ids/badge.svg?branch=master)](https://coveralls.io/github/Origen-SDK/test_ids?branch=master)
+
 # test_ids
 
 An Origen plugin to automatically assign and maintain test program bin and test numbers.

@@ -1,9 +1,8 @@
 require 'origen_testers/flow'
 module OrigenTesters
   module Flow
-  
     BIN_OPTS = [:bin, :softbin, :bin_size, :softbin_size, :number, :number_size]
-    
+
     # Override the flow.test method to inject our generated bin and
     # test numbers
     alias_method :_orig_test, :test

@@ -26,8 +26,19 @@ module TestIds
 
     def range_item(range, options)
       orig_options = options.dup
-      # Create an alias for the databse that stores the pointers per range
-      rangehash = store['pointers']['ranges'] ||= {}
+      # Now Check if the database (JSON file) exists.
+      # If file exists, load the database and create the alias for ['pointer']['ranges']
+      if file && File.exist?(file)
+        lines = File.readlines(file)
+        # Remove any header comment lines since these are not valid JSON
+        lines.shift while lines.first =~ /^\/\// && !lines.empty?
+        s = JSON.load(lines.join("\n"))
+        rangehash = s['pointers']['ranges']
+        rangehash = Hash[rangehash.map { |k, v| [k.to_sym, v] }]
+      else
+        # Create an alias for the databse that stores the pointers per range
+        rangehash = store['pointers']['ranges'] ||= {}
+      end
       # Check the database to see if the passed in range has already been included in the database hash
       if rangehash.key?(:"#{range}")
         # Read out the database hash to see what the last_softbin given out was for that range.
@@ -47,12 +58,12 @@ module TestIds
           assigned_value = range.to_a[@pointer]
         end
         # Now update the database pointers to point to the lastest assigned softbin for a given range.
-        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        rangehash.merge!(:"#{range}" => "#{range.to_a[@pointer]}")
       else
         # This is the case for a brand new range that has not been passed before
         # We start from the first value as the assigned softbin and update the database to reflect.
         @pointer = 0
-        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        rangehash.merge!(:"#{range}" => "#{range.to_a[@pointer]}")
         assigned_value = range.to_a[@pointer]
       end
       unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)

@@ -58,12 +58,12 @@ module TestIds
           assigned_value = range.to_a[@pointer]
         end
         # Now update the database pointers to point to the lastest assigned softbin for a given range.
-        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        rangehash.merge!(:"#{range}" => "#{range.to_a[@pointer]}")
       else
         # This is the case for a brand new range that has not been passed before
         # We start from the first value as the assigned softbin and update the database to reflect.
         @pointer = 0
-        rangehash.merge!("#{range}": "#{range.to_a[@pointer]}")
+        rangehash.merge!(:"#{range}" => "#{range.to_a[@pointer]}")
         assigned_value = range.to_a[@pointer]
       end
       unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)

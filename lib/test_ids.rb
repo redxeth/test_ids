@@ -30,10 +30,17 @@ module TestIds
       }
     end
 
-    # Load an existing allocator, which will be loaded with an empty configuration
+    # Load an existing allocator, which will be loaded with a configuration based on what has
+    # been serialized into the database if present, otherwise it will have an empty configuration.
+    # Returns nil if the given database can not be found.
     # @api internal
     def load_allocator(id = nil)
-      Configuration.new(id).allocator
+      f = TestIds.database_file(id)
+      if File.exist?(f)
+        a = Configuration.new(id).allocator
+        a.load_configuration_from_store
+        a
+      end
     end
 
     def current_configuration
@@ -157,6 +164,10 @@ module TestIds
         fail 'TestIds.publish must be set to either true or false'
       end
       @publish = val ? :save : :dont_save
+    end
+
+    def next_in_range(range, options)
+      current_configuration.allocator.next_in_range(range, options)
     end
 
     ## When set to true, all numbers generated will be checked to see if they comply

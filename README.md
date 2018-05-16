@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Origen-SDK/test_ids.svg?branch=master)](https://travis-ci.org/Origen-SDK/test_ids)
+[![Coverage Status](https://coveralls.io/repos/github/Origen-SDK/test_ids/badge.svg?branch=master)](https://coveralls.io/github/Origen-SDK/test_ids?branch=master)
+
 # test_ids
 
 An Origen plugin to automatically assign and maintain test program bin and test numbers.
@@ -68,11 +71,11 @@ flow.test my_test, bin: 10, test_ids: :notrack
 The various ID types are generated in the following order which places some constraints on the configuration options
 available to each one:
 
-* **bin** - These are generated first, and therefore can only be configured to be generated from a range
+* **bin** - These are generated first, and therefore can only be configured to be generated from a range. They can also be generated from a specific range per test. Please see Using specific ranges below.
 * **softbin** - These come next, and they can be generated from a range or from either a template or a function which
-  references the bin number
+  references the bin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
 * **number** - The test number comes last, and they can be generated from a range or from either a template or a function which
-  references the bin number and/or softbin number
+  references the bin number and/or softbin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
 
 ### Assigning a Range
 
@@ -214,6 +217,83 @@ func :my_func_16mhz, test_id: :my_func, number: :my_func_16mhz
 func :my_func_33mhz, bin: :my_func
 func :my_func_25mhz, bin: :my_func
 func :my_func_16mhz, bin: :my_func
+~~~
+
+
+### Using specified ranges (Beta Feature)
+
+**It is assumed that in the configuration the user will configure the bins first, softbins next and numbers last**
+
+A new limited feature has been added to the plugin. It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
+
+Application side, the user needs to make sure that a check if in place in the interface to confirm that the softbin/bin/numbers being passed to a function or method are not nil.
+
+Example: if number is a function of both softbin and bin, and softbin uses specific ranges, the following will be required in the configuration
+
+~~~ruby
+config.numbers do |bin, softbin|
+ unless softbin.nil?
+  (softbin * 10) + bin 
+ end 
+end
+~~~
+
+
+To enable specific ranges for SoftBins the TestId configuration will be as follows: 
+
+~~~ruby
+
+     if options[:environment] == :probe
+        TestIds.configure :wafer_test do |config|
+          config.softbins.size = 5
+          config.softbins do |bin, options|
+           if !options[:softbin_range].nil? && options[:softbin_range].is_a?(Range) 
+            TestIds.next_in_range(options[:softbin_range],options)
+           end
+          end
+        end
+        # else different environment settings
+      end
+
+~~~
+
+Similar configurations are available for bins and numbers as well.
+
+~~~ruby
+
+    TestIds.configure do |config|
+      config.bins do |options|
+       if options[:bin_range].is_a?(Range)
+        TestIds.next_in_range(options[:bin_range], options)
+       end
+     end 
+~~~
+
+~~~ruby
+
+    TestIds.configure do |config|
+      config.bins.include << (1..4)
+      config.softbins.include << (500..600)
+      config.numbers do |bin, softbin, options|
+       if options[:number_range].is_a?(Range)
+        TestIds.next_in_range(options[:number_range], options)
+       end
+     end 
+
+~~~
+
+Please be aware use of specific ranges for more than one TYPE (bin/softbin/numbers) in the configurations has not yet been verified and will most likely need further enhancements to this method.
+
+For more examples, please look at the examples in spec/specific_ranges.rb file
+
+*Also if the current provided range is not sufficient, the plugin will display an Origen error log warning and raise an exception, thus stopping generation until the range is increased.*
+
+~~~ruby
+[ERROR]      2.500[0.051]    || Assigned value not in range
+
+COMPLETE CALL STACK
+-------------------
+
 ~~~
 
 

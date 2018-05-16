@@ -67,4 +67,25 @@ describe "A Bin Array" do
     b.include?(30).should == true
     b.include?(31).should == false
   end
+
+  it "can yield all numbers in the range" do
+    b = TestIds::BinArray.new
+    b << 10
+    b << (15..20)
+    b << 30
+
+    b.next.should == 10
+    b.next.should == 15
+
+    a = [10, 15, 16, 17, 18, 19, 20, 30]
+
+    b.yield_all do |i|
+      r = a.delete(i)
+      r.should_not == nil
+    end
+
+    a.empty?.should == true
+
+    b.next.should == 16
+  end
 end

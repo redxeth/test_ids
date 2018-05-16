@@ -10,7 +10,7 @@ when "test_ids:rollback"
   end
   exit 0
 
-when "test_ids:clear"
+when "test_ids:clear", "test_ids:repair"
   require "test_ids/commands/#{@command.split(':').last}"
   exit 0
 
@@ -18,6 +18,7 @@ else
   @plugin_commands << <<-EOT
  test_ids:rollback  Rollback the TestIds store to the given commit ID
  test_ids:clear     Clear the assignment database for bins, softbins, numbers or all
+ test_ids:repair    Repair the given database, see -h for more
   EOT
 
 end

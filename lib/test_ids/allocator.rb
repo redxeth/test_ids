@@ -689,7 +689,7 @@ module TestIds
     end
 
     def extract_test_name(instance, options)
-      name = options[:test_id]
+      name = options[:test_id] || options[:name]
       unless name
         if instance.is_a?(String)
           name = instance

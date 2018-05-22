@@ -501,11 +501,11 @@ module TestIds
             refs = store['references']['softbins']
             i = 0
             possible = []
-            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
             possible << proposal
             while refs[proposal] && i.to_s.size <= max_counter_size
               i += 1
-              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
               possible << proposal
             end
             # Overflowed, need to go search for the oldest duplicate now
@@ -585,11 +585,11 @@ module TestIds
             refs = store['references']['numbers']
             i = 0
             possible = []
-            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
             possible << proposal
             while refs[proposal] && i.to_s.size <= max_counter_size
               i += 1
-              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
               possible << proposal
             end
             # Overflowed, need to go search for the oldest duplicate now

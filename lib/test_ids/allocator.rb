@@ -80,7 +80,6 @@ module TestIds
       clean(options)
       @callbacks = []
       name = extract_test_name(instance, options)
-      name = "#{name}_#{options[:index]}" if options[:index]
 
       # First work out the test ID to be used for each of the numbers, and how many numbers
       # should be reserved
@@ -89,16 +88,19 @@ module TestIds
       else
         bin_id = name
       end
+      bin_id = "#{bin_id}_#{options[:index]}" if options[:index]
       if (options[:softbin].is_a?(Symbol) || options[:softbin].is_a?(String)) && options[:softbin] != :none
         softbin_id = options[:softbin].to_s
       else
         softbin_id = name
       end
+      softbin_id = "#{softbin_id}_#{options[:index]}" if options[:index]
       if (options[:number].is_a?(Symbol) || options[:number].is_a?(String)) && options[:number] != :none
         number_id = options[:number].to_s
       else
         number_id = name
       end
+      number_id = "#{number_id}_#{options[:index]}" if options[:index]
 
       bin_size = options[:bin_size] || config.bins.size
       softbin_size = options[:softbin_size] || config.softbins.size
@@ -202,6 +204,24 @@ module TestIds
       end
 
       options
+    end
+
+    # Merge the given other store into the current one, it is assumed that both are formatted
+    # from the same (latest) revision
+    def merge_store(other_store)
+      store['pointers'] = store['pointers'].merge(other_store['pointers'])
+      @last_bin = store['pointers']['bins']
+      @last_softbin = store['pointers']['softbins']
+      @last_number = store['pointers']['numbers']
+      store['assigned']['bins'] = store['assigned']['bins'].merge(other_store['assigned']['bins'])
+      store['assigned']['softbins'] = store['assigned']['softbins'].merge(other_store['assigned']['softbins'])
+      store['assigned']['numbers'] = store['assigned']['numbers'].merge(other_store['assigned']['numbers'])
+      store['manually_assigned']['bins'] = store['manually_assigned']['bins'].merge(other_store['manually_assigned']['bins'])
+      store['manually_assigned']['softbins'] = store['manually_assigned']['softbins'].merge(other_store['manually_assigned']['softbins'])
+      store['manually_assigned']['numbers'] = store['manually_assigned']['numbers'].merge(other_store['manually_assigned']['numbers'])
+      store['references']['bins'] = store['references']['bins'].merge(other_store['references']['bins'])
+      store['references']['softbins'] = store['references']['softbins'].merge(other_store['references']['softbins'])
+      store['references']['numbers'] = store['references']['numbers'].merge(other_store['references']['numbers'])
     end
 
     def store
@@ -455,7 +475,8 @@ module TestIds
         # When no bin is returned it means we have used them all, all future generation
         # now switches to reclaim mode
         if b
-          store['pointers']['bins'] = b
+          store['pointers']['bins'] = b + (options[:size] || 1) - 1
+          b
         else
           store['pointers']['bins'] = 'done'
           reclaim_bin(options)
@@ -538,7 +559,8 @@ module TestIds
           # When no softbin is returned it means we have used them all, all future generation
           # now switches to reclaim mode
           if b
-            store['pointers']['softbins'] = b
+            store['pointers']['softbins'] = b + (options[:size] || 1) - 1
+            b
           else
             store['pointers']['softbins'] = 'done'
             reclaim_softbin(options)
@@ -622,7 +644,8 @@ module TestIds
           # When no number is returned it means we have used them all, all future generation
           # now switches to reclaim mode
           if b
-            store['pointers']['numbers'] = b
+            store['pointers']['numbers'] = b + (options[:size] || 1) - 1
+            b
           else
             store['pointers']['numbers'] = 'done'
             reclaim_number(options)

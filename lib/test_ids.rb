@@ -30,6 +30,40 @@ module TestIds
       }
     end
 
+    # Similar to allocate, but allocates a test number only, i.e. no bin or softbin
+    def allocate_number(instance, options = {})
+      opts = options.dup
+      opts[:bin] = :none
+      opts[:softbin] = :none
+      current_configuration.allocator.allocate(instance, opts)
+      {
+        number: opts[:number], number_size: opts[:number_size]
+      }
+    end
+
+    # Similar to allocate, but allocates a softbin number only, i.e. no bin or test number
+    def allocate_softbin(instance, options = {})
+      opts = options.dup
+      opts[:bin] = :none
+      opts[:number] = :none
+      current_configuration.allocator.allocate(instance, opts)
+      {
+        softbin: opts[:softbin], softbin_size: opts[:softbin_size]
+      }
+    end
+    alias_method :allocate_soft_bin, :allocate_softbin
+
+    # Similar to allocate, but allocates a bin number only, i.e. no softbin or test number
+    def allocate_bin(instance, options = {})
+      opts = options.dup
+      opts[:softbin] = :none
+      opts[:number] = :none
+      current_configuration.allocator.allocate(instance, opts)
+      {
+        softbin: opts[:bin], softbin_size: opts[:bin_size]
+      }
+    end
+
     # Load an existing allocator, which will be loaded with a configuration based on what has
     # been serialized into the database if present, otherwise it will have an empty configuration.
     # Returns nil if the given database can not be found.

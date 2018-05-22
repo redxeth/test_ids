@@ -234,6 +234,8 @@ describe "The number allocator" do
 
     t = a(:t1)
     t[:number].should == 8000
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['numbers'].should == 8004
     t = a(:t2)
     t[:number].should == 8005
   end

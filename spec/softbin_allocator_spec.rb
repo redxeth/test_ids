@@ -207,13 +207,13 @@ describe "The softbin allocator" do
   it "the incremental counter can be leading" do
     TestIds.configure do |config|
       config.bins.include << 3
-      config.softbins.algorithm = "xxxb"
+      config.softbins.algorithm = "xxxbbb"
     end
     a(:t0)[:softbin].should == 3
-    a(:t1)[:softbin].should == 13
-    a(:t2)[:softbin].should == 23
-    a(:t3)[:softbin].should == 33
-    a(:t2)[:softbin].should == 23
+    a(:t1)[:softbin].should == 1003
+    a(:t2)[:softbin].should == 2003
+    a(:t3)[:softbin].should == 3003
+    a(:t2)[:softbin].should == 2003
   end
 
   it "the softbins can be generated from a callback" do

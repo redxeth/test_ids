@@ -73,42 +73,80 @@ module TestIds
       assigned_value
     end
 
+    # Returns an array containing :bin, :softbin, :number in the order that they should be calculated in order to fulfil
+    # the requirements of the current configuration and the given options.
+    # If an item is not required (e.g. if set to :none in the options), then it will not be present in the array.
+    def allocation_order(options)
+      items = []
+      items_required = 0
+      if allocation_required?(:bin, options) ||
+         (allocation_required?(:softbin, options) && config.softbins.needs?(:bin)) ||
+         (allocation_required?(:number, options) && config.numbers.needs?(:bin))
+        items_required += 1
+      else
+        bin_done = true
+      end
+      if allocation_required?(:softbin, options) ||
+         (allocation_required?(:bin, options) && config.bins.needs?(:softbin)) ||
+         (allocation_required?(:number, options) && config.numbers.needs?(:bin))
+        items_required += 1
+      else
+        softbin_done = true
+      end
+      if allocation_required?(:number, options) ||
+         (allocation_required?(:bin, options) && config.bins.needs?(:softbin)) ||
+         (allocation_required?(:softbin, options) && config.softbins.needs?(:bin))
+        items_required += 1
+      else
+        number_done = true
+      end
+      items_required.times do |i|
+        if !bin_done && (!config.bins.needs?(:softbin) || softbin_done) && (!config.bins.needs?(:number) || number_done)
+          items << :bin
+          bin_done = true
+        elsif !softbin_done && (!config.softbins.needs?(:bin) || bin_done) && (!config.softbins.needs?(:number) || number_done)
+          items << :softbin
+          softbin_done = true
+        elsif !number_done && (!config.numbers.needs?(:bin) || bin_done) && (!config.numbers.needs?(:softbin) || softbin_done)
+          items << :number
+          number_done = true
+        else
+          fail "Couldn't work out whether to generate the bin, softbin or test number next on iteration #{i} of #{items_required}, already picked: #{items}"
+        end
+      end
+      items
+    end
+
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
       orig_options = options.dup
       clean(options)
-      @callbacks = []
       name = extract_test_name(instance, options)
+
+      allocation_order(options) do |type|
+        allocate_item(type, name, options)
+      end
+
+      options
+    end
+
+    def allocate_item(type, name, options)
+      plural = "#{type}s"
+      conf = config.send(plural)
 
       # First work out the test ID to be used for each of the numbers, and how many numbers
       # should be reserved
-      if (options[:bin].is_a?(Symbol) || options[:bin].is_a?(String)) && options[:bin] != :none
-        bin_id = options[:bin].to_s
+      if (options[type].is_a?(Symbol) || options[type].is_a?(String)) && options[type] != :none
+        id = options[type].to_s
       else
-        bin_id = name
+        id = name
       end
-      bin_id = "#{bin_id}_#{options[:index]}" if options[:index]
-      if (options[:softbin].is_a?(Symbol) || options[:softbin].is_a?(String)) && options[:softbin] != :none
-        softbin_id = options[:softbin].to_s
-      else
-        softbin_id = name
-      end
-      softbin_id = "#{softbin_id}_#{options[:index]}" if options[:index]
-      if (options[:number].is_a?(Symbol) || options[:number].is_a?(String)) && options[:number] != :none
-        number_id = options[:number].to_s
-      else
-        number_id = name
-      end
-      number_id = "#{number_id}_#{options[:index]}" if options[:index]
+      id = "#{id}_#{options[:index]}" if options[:index]
 
-      bin_size = options[:bin_size] || config.bins.size
-      softbin_size = options[:softbin_size] || config.softbins.size
-      number_size = options[:number_size] || config.numbers.size
+      size = options["#{type}_size".to_sym] || conf.size
 
-      bin = store['assigned']['bins'][bin_id] ||= {}
-      softbin = store['assigned']['softbins'][softbin_id] ||= {}
-      number = store['assigned']['numbers'][number_id] ||= {}
+      val = store['assigned'][plural][id] ||= {}
 
       # If the user has supplied any of these, that number should be used
       # and reserved so that it is not automatically generated later
@@ -202,8 +240,19 @@ module TestIds
         options[:number] = number['number']
         options[:number_size] = number['size']
       end
+    end
 
-      options
+    # Returns true if a new bin allocation has to be made, taking into account what is in the given options
+    # This may return true even if bin => :none, in which case it means that the way that the other types
+    # are calculated depends on a bin number
+    def allocation_required?(type, options)
+      if options[type] == :none
+        false
+      elsif options[type] && options[type].is_a?(Integer)
+        false
+      else
+        !config.send("#{type}s").empty?
+      end
     end
 
     # Merge the given other store into the current one, it is assumed that both are formatted

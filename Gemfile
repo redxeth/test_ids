@@ -5,7 +5,7 @@ source 'https://rubygems.org'
 # This gem provides integration with https://coveralls.io/ to monitor
 # your application's test coverage
 gem 'coveralls', require: false
-gem 'byebug'
+gem 'byebug', "~>8"  # Keep support for Ruby 2.0
 gem 'origen_doc_helpers'
 gem 'ripper-tags'
 # Uncomment these if you want to use a visual debugger (e.g. Visual Studio Code) to debug your app

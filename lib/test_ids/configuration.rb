@@ -1,20 +1,27 @@
 module TestIds
   class Configuration
     class Item
-      attr_accessor :include, :exclude, :algorithm, :size
+      attr_accessor :include, :exclude, :algorithm, :size, :needs
 
       def initialize
         @include = BinArray.new
         @exclude = BinArray.new
+        @needs = []
         @size = 1
       end
 
-      def callback(&block)
+      def callback(options = {}, &block)
         if block_given?
+          @needs += Array(options[:needs])
           @callback = block
         else
           @callback
         end
+      end
+
+      def needs?(type)
+        !!(!empty? && function? && (needs.include?(type) ||
+            (algorithm && (algorithm.to_s =~ /#{type.to_s[0]}/i))))
       end
 
       def empty?
@@ -36,6 +43,7 @@ module TestIds
       def freeze
         @include.freeze
         @exclude.freeze
+        @needs.freeze
         super
       end
 
@@ -132,9 +140,6 @@ module TestIds
 
     def validate!
       unless validated?
-        if bins.algorithm
-          fail 'The TestIds bins configuration cannot be set to an algorithm, only a range set by bins.include and bins.exclude is permitted'
-        end
         @validated = true
         freeze
       end

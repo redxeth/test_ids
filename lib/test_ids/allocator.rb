@@ -124,14 +124,17 @@ module TestIds
       clean(options)
       name = extract_test_name(instance, options)
 
+      @needs_regenerated = []
+
       allocation_order(options) do |type|
-        allocate_item(type, name, options)
+        _allocate(type, name, options)
       end
 
       options
     end
 
-    def allocate_item(type, name, options)
+    # @api private
+    def _allocate(type, name, options)
       plural = "#{type}s"
       conf = config.send(plural)
 
@@ -150,101 +153,42 @@ module TestIds
 
       # If the user has supplied any of these, that number should be used
       # and reserved so that it is not automatically generated later
-      if options[:bin] && options[:bin].is_a?(Numeric)
-        bin['number'] = options[:bin]
-        bin['size'] = bin_size
-        store['manually_assigned']['bins'][options[:bin].to_s] = true
-      # Regenerate the bin if the original allocation has since been applied
+      if options[type] && options[type].is_a?(Numeric)
+        val['number'] = options[type]
+        val['size'] = size
+        store['manually_assigned'][plural][options[type].to_s] = true
+      # Regenerate the number if the original allocation has since been applied
       # manually elsewhere
-      elsif store['manually_assigned']['bins'][bin['number'].to_s]
-        bin['number'] = nil
-        bin['size'] = nil
-        # Also regenerate these as they could be a function of the bin
-        if config.softbins.function?
-          softbin['number'] = nil
-          softbin['size'] = nil
-        end
-        if config.numbers.function?
-          number['number'] = nil
-          number['size'] = nil
-        end
-      end
-      if options[:softbin] && options[:softbin].is_a?(Numeric)
-        softbin['number'] = options[:softbin]
-        softbin['size'] = softbin_size
-        store['manually_assigned']['softbins'][options[:softbin].to_s] = true
-      elsif store['manually_assigned']['softbins'][softbin['number'].to_s]
-        softbin['number'] = nil
-        softbin['size'] = nil
-        # Also regenerate the number as it could be a function of the softbin
-        if config.numbers.function?
-          number['number'] = nil
-          number['size'] = nil
-        end
-      end
-      if options[:number] && options[:number].is_a?(Numeric)
-        number['number'] = options[:number]
-        number['size'] = number_size
-        store['manually_assigned']['numbers'][options[:number].to_s] = true
-      elsif store['manually_assigned']['numbers'][number['number'].to_s]
-        number['number'] = nil
-        number['size'] = nil
-        # Also regenerate the softbin as it could be a function of the number
-        if config.softbins.function?
-          softbin['number'] = nil
-          softbin['size'] = nil
+      elsif store['manually_assigned'][plural][val['number'].to_s]
+        val['number'] = nil
+        val['size'] = nil
+        # Also regenerate these as they could be a function of the number we just invalidated
+        ([:bin, :softbin, :number] - [type]).each do |t|
+          if config.send("#{t}s").needs?(type)
+            @needs_regenerated << t
+          end
         end
       end
 
       # Otherwise generate the missing ones
-      bin['number'] ||= allocate_bin(options.merge(size: bin_size))
-      bin['size'] ||= bin_size
-      # If the softbin is based on the test number, then need to calculate the
-      # test number first.
-      # Also do the number first if the softbin is a callback and the number is not.
-      if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
-         (config.softbins.callback && !config.numbers.function?)
-        number['number'] ||= allocate_number(options.merge(bin: bin['number'], size: number_size))
-        number['size'] ||= number_size
-        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], number: number['number'], size: softbin_size))
-        softbin['size'] ||= softbin_size
-      else
-        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], size: softbin_size))
-        softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(options.merge(bin: bin['number'], softbin: softbin['number'], size: number_size))
-        number['size'] ||= number_size
-      end
+      val['number'] ||= allocate_item(type, options.merge(size: size))
+      val['size'] ||= size
 
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
-      bin_size.times do |i|
-        store['references']['bins'][(bin['number'] + i).to_s] = time if bin['number'] && options[:bin] != :none
-      end
-      softbin_size.times do |i|
-        store['references']['softbins'][(softbin['number'] + i).to_s] = time if softbin['number'] && options[:softbin] != :none
-      end
-      number_size.times do |i|
-        store['references']['numbers'][(number['number'] + i).to_s] = time if number['number'] && options[:number] != :none
+      val['size'].times do |i|
+        store['references'][plural][(val['number'] + i).to_s] = time if val['number'] && options[type] != :none
       end
 
       # Update the supplied options hash that will be forwarded to the program generator
-      unless options.delete(:bin) == :none
-        options[:bin] = bin['number']
-        options[:bin_size] = bin['size']
-      end
-      unless options.delete(:softbin) == :none
-        options[:softbin] = softbin['number']
-        options[:softbin_size] = softbin['size']
-      end
-      unless options.delete(:number) == :none
-        options[:number] = number['number']
-        options[:number_size] = number['size']
+      unless options.delete(type) == :none
+        options[type] = val['number']
+        options["#{type}_size".to_sym] = val['size']
       end
     end
 
-    # Returns true if a new bin allocation has to be made, taking into account what is in the given options
-    # This may return true even if bin => :none, in which case it means that the way that the other types
-    # are calculated depends on a bin number
+    # Returns true if a new bin allocation has to be made, taking into account what is in the given options,
+    # but not considering if the given type may be a dependency of another type
     def allocation_required?(type, options)
       if options[type] == :none
         false

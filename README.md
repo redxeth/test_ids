@@ -33,7 +33,7 @@ module MyApp
       TestIds.configure do |config|
         config.bins.include << (100..500)
         config.softbins = :bbb000
-        config.numbers needs: [:bin, :softbin] do |options|
+        config.numbers.callback needs: [:bin, :softbin] do |options|
           (options[:softbin] * 10) + options[:bin] 
         end
       end
@@ -41,7 +41,7 @@ module MyApp
 ~~~
 
 
-Then anytime that you call `flow.test(my_test_instance, options)` within your application's interface, assignments for `:bin`, `:softbin` and `:number` will automatically be injected into the options before it hits OrigenTesters.
+Then, anytime that you call `flow.test(my_test_instance, options)` within your application's interface, assignments for `:bin`, `:softbin` and `:number` will automatically be injected into the options before it hits OrigenTesters.
 If an entry for any of the keys is already present in the options, then that will be given priority and TestIds will not attempt to assign a value for that attribute.
 
 If you want to prevent TestIds from generating a given attribute and really pass `nil` for that attribute to OrigenTesters, then assign it to the value `:none`:
@@ -231,19 +231,12 @@ func :my_func_16mhz, bin: :my_func
 ~~~
 
 
-### Using Specified Ranges (Beta Feature)
+## Next In Range (Beta Feature)
 
-This feature enables the user-specified number ranges to be used within callback functions and TestIds will keep track of
+This feature enables user-specified number ranges to be used within callback functions and TestIds will keep track of
 how many numbers in the range have been consumed so far.
 
- It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
-
-Application side, the user needs to make sure that a check if in place in the interface to confirm that the softbin/bin/numbers being passed to a function or method are not nil.
-
-Example: if number is a function of both softbin and bin, and softbin uses specific ranges, the following will be required in the configuration
-
-
-To enable specific ranges for SoftBins the TestId configuration will be as follows: 
+This is best shown by example:
 
 ~~~ruby
 TestIds.configure :wafer_test do |config|
@@ -251,13 +244,16 @@ TestIds.configure :wafer_test do |config|
   config.softbins.size = 5
   config.softbins.callback needs: :bin do |options|
     if options[:bin] == 1
-      TestIds.next_in_range(1000..2000)
+      TestIds.next_in_range((1000..2000))
     else
-      TestIds.next_in_range(10000..99999)
+      TestIds.next_in_range((10000..99999), size: 5)   # Increment by 5 instead of the default of 1
     end
   end
 end
 ~~~
+
+The `next_in_range` method will increment through the range and return the next number. The last number given out is recorded
+in the TestIds database so that it will continue from that point the next time.
 
 Note that use of the same ranges for more than one ID type (bin, softbin or number) within the configurations has not yet been verified,
 and will most likely need further enhancements to this method.

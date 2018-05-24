@@ -124,8 +124,11 @@ module TestIds
       clean(options)
       name = extract_test_name(instance, options)
 
-      # Record any manual assignments that are present
+      nones = []
+
+      # Record any manual assignments that are present and any types that are set to :none
       [:bin, :softbin, :number].each do |type|
+        nones << type if options[type] == :none
         # If the user has supplied any of these, that number should be used
         # and reserved so that it is not automatically generated later
         if options[type] && options[type].is_a?(Numeric)
@@ -140,11 +143,9 @@ module TestIds
       end
 
       # Turn any :nones into nils in the returned options
-      [:bin, :softbin, :number].each do |type|
-        if options[type] == :none
-          options[type] = nil
-          options["#{type}_size"] = nil
-        end
+      nones.each do |type|
+        options[type] = nil
+        options["#{type}_size"] = nil
       end
 
       options
@@ -405,10 +406,8 @@ module TestIds
       end
 
       # Update the supplied options hash that will be forwarded to the program generator
-      unless options.delete(type) == :none
-        options[type] = val['number']
-        options["#{type}_size".to_sym] = val['size']
-      end
+      options[type] = val['number']
+      options["#{type}_size".to_sym] = val['size']
     end
 
     # Returns true if a new bin allocation has to be made, taking into account what is in the given options,

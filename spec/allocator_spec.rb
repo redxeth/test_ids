@@ -6,6 +6,11 @@ describe "The allocator" do
     TestIds.send(:reset)
   end
 
+  def a(name, options = {})
+    allocator.allocate(name, options)
+    options
+  end
+
   def allocator
     TestIds.current_configuration.allocator
   end
@@ -175,5 +180,22 @@ describe "The allocator" do
     r[:number].should == 4
     r[:bin].should == 0
     r[:softbin].should == 0
+  end
+
+  it "corner case where the user asks for no bin number, but the softbin needs it" do
+    TestIds.configure do |config|
+      config.bins.include << (1..10)
+      config.softbins.callback needs: :bin do |options|
+        options[:bin] * 1000
+      end
+    end
+
+    r = a(:t1)
+    r[:bin].should == 1
+    r[:softbin].should == 1000
+
+    r = a(:t2, bin: :none)
+    r[:bin].should == nil
+    r[:softbin].should == 2000
   end
 end

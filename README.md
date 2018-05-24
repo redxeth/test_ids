@@ -33,8 +33,8 @@ module MyApp
       TestIds.configure do |config|
         config.bins.include << (100..500)
         config.softbins = :bbb000
-        config.numbers do |bin, softbin|
-          (softbin * 10) + bin 
+        config.numbers needs: [:bin, :softbin] do |options|
+          (options[:softbin] * 10) + options[:bin] 
         end
       end
     end
@@ -53,10 +53,16 @@ flow.test my_test, bin: :none   # Assign no bin but allow TestIds to generate a 
 A method is also provided to directly assign/retrieve the numbers for a given test from TestIds, this should be supplied with the same arguments that you would normally pass to `flow.test`:
 
 ~~~ruby
-TestIds.allocate(my_test, options)   # => { bin: 5, bin_size: 1, softbin: 1250, softbin_size: 1 number: 10250010, number_size: 1 }
+TestIds.allocate(my_test, options)   # => { bin: 5, bin_size: 1, softbin: 1250, softbin_size: 1, number: 10250010, number_size: 1 }
 
 # The above returns the same numbers that would be injected into the options when calling:
 flow.test my_test, options
+~~~
+
+The convenience methods `allocate_bin`, `allocate_softbin` and `allocate_number` exist to generate only the respective number type:
+
+~~~ruby
+TestIds.allocate_number(my_test, options)   # => { number: 10250010, number_size: 1 }
 ~~~
 
 If you want to prevent TestIds from tracking/assigning to a given test you can supply a no-track option:
@@ -68,14 +74,8 @@ flow.test my_test, bin: 10, test_ids: :notrack
 
 ## Configuration
 
-The various ID types are generated in the following order which places some constraints on the configuration options
-available to each one:
-
-* **bin** - These are generated first, and therefore can only be configured to be generated from a range. They can also be generated from a specific range per test. Please see Using specific ranges below.
-* **softbin** - These come next, and they can be generated from a range or from either a template or a function which
-  references the bin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
-* **number** - The test number comes last, and they can be generated from a range or from either a template or a function which
-  references the bin number and/or softbin number. They can also be generated from a specific range per test. Please see Using specific ranges below.
+All ID types (bin, softbin or number), can be generated from either a range, an algorithm, or a function. There now follows a description
+of how to configure each one...
 
 ### Assigning a Range
 
@@ -112,22 +112,23 @@ flow.test my_test, bin_size: 2, softbin_size: 10, number_size: 100
 ~~~
 
 
-### Assigning a Template
+### Assigning an Algorithm
 
-Softbin and test numbers can also be generated from a template. Note that if you supply a template for a given ID type
+Softbin and test numbers can also be generated from an algorithm. Note that if you supply an algorithm for a given ID type
 then you cannot also supply a range.
 
 The template describes the form that the given number should have, using the following key:
 
 * **b** - A bin number digit
 * **s** - A softbin number digit
+* **n** - A test number digit
 * **x** - A uniqueness counter
 * **0-9** - A static digit
 
 For example, to make the softbins equal to the bin number * 100, you can simply do:
 
 ~~~ruby
-config.softbins = :bbb00
+config.softbins.algorithm = :bbb00
 ~~~
 
 For bins 1, 2, 3 this would generate softbins 100, 200, 300.
@@ -136,27 +137,37 @@ Suppose that you have many tests assigned to the same bin number and you would l
 you can make some of the digits a unique counter instead:
 
 ~~~ruby
-config.softbins = :bbbxx
+config.softbins.algorithm = :bbbxx
 ~~~
 
 If all of your tests were bin 3 for example, then this would assign softbins 300 to 399.
 
 ### Assigning a Function
 
-If your softbins or test numbers are a function which cannot be expressed using the above template rules, then you can always
-fall back to a custom function.
+If your numbers need to be derived from a function which cannot be expressed using the above algorithm rules, then you can always
+fall back to a custom callback function, here are some examples:
 
 ~~~ruby
-# The softbin function has access to the bin number
-config.softbins do |bin|
-  bin * 3
+config.softbins.callback needs: :bin do |options|
+  options[:bin] * 3
 end
 
-# And the test number function has access to the softbin too
-config.numbers do |bin, softbin|
-  (softbin * 10) + bin 
+config.numbers.callback needs: [:bin, :softbin] do |options|
+  (options[:softbin] * 10) + options[:bin] 
 end
 ~~~
+
+The callback function will have access to all options passed into `flow.test` by your test program flow, or any passed to
+`TestIDs.allocate` if called directly.
+
+Additionally, you should indicate if your function depends on one of the other number types (bin, softbin or number) via the
+`:needs` option as shown.
+This will ensure that TestIds generates them in the correct order required to ensure that the dependent type is always available
+in the options.
+
+Note that the natural generation order may mean that it appears to work without supplying the `:needs` information, however it
+is recommended to always supply this to ensure robust operation across all corner cases.
+
 
 ## Manual Allocation
 
@@ -220,80 +231,47 @@ func :my_func_16mhz, bin: :my_func
 ~~~
 
 
-### Using specified ranges (Beta Feature)
+### Using Specified Ranges (Beta Feature)
 
-**It is assumed that in the configuration the user will configure the bins first, softbins next and numbers last**
+This feature enables the user-specified number ranges to be used within callback functions and TestIds will keep track of
+how many numbers in the range have been consumed so far.
 
-A new limited feature has been added to the plugin. It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
+ It will let the user specify ranges in the flow for different TYPE (softbin/bin/number) and the plugin will figure out the next available number from that range.
 
 Application side, the user needs to make sure that a check if in place in the interface to confirm that the softbin/bin/numbers being passed to a function or method are not nil.
 
 Example: if number is a function of both softbin and bin, and softbin uses specific ranges, the following will be required in the configuration
 
-~~~ruby
-config.numbers do |bin, softbin|
- unless softbin.nil?
-  (softbin * 10) + bin 
- end 
-end
-~~~
-
 
 To enable specific ranges for SoftBins the TestId configuration will be as follows: 
 
 ~~~ruby
-
-     if options[:environment] == :probe
-        TestIds.configure :wafer_test do |config|
-          config.softbins.size = 5
-          config.softbins do |bin, options|
-           if !options[:softbin_range].nil? && options[:softbin_range].is_a?(Range) 
-            TestIds.next_in_range(options[:softbin_range],options)
-           end
-          end
-        end
-        # else different environment settings
-      end
-
+TestIds.configure :wafer_test do |config|
+  config.bins.include << (1..5)
+  config.softbins.size = 5
+  config.softbins.callback needs: :bin do |options|
+    if options[:bin] == 1
+      TestIds.next_in_range(1000..2000)
+    else
+      TestIds.next_in_range(10000..99999)
+    end
+  end
+end
 ~~~
 
-Similar configurations are available for bins and numbers as well.
+Note that use of the same ranges for more than one ID type (bin, softbin or number) within the configurations has not yet been verified,
+and will most likely need further enhancements to this method.
 
-~~~ruby
+For more examples, please look at the examples in the `spec/specific_ranges.rb` file.
 
-    TestIds.configure do |config|
-      config.bins do |options|
-       if options[:bin_range].is_a?(Range)
-        TestIds.next_in_range(options[:bin_range], options)
-       end
-     end 
-~~~
+*Note that if the end of the provided range is reached, the plugin will display an Origen error log warning and raise an exception, thus stopping generation until the range is increased.*
 
-~~~ruby
-
-    TestIds.configure do |config|
-      config.bins.include << (1..4)
-      config.softbins.include << (500..600)
-      config.numbers do |bin, softbin, options|
-       if options[:number_range].is_a?(Range)
-        TestIds.next_in_range(options[:number_range], options)
-       end
-     end 
-
-~~~
-
-Please be aware use of specific ranges for more than one TYPE (bin/softbin/numbers) in the configurations has not yet been verified and will most likely need further enhancements to this method.
-
-For more examples, please look at the examples in spec/specific_ranges.rb file
-
-*Also if the current provided range is not sufficient, the plugin will display an Origen error log warning and raise an exception, thus stopping generation until the range is increased.*
-
-~~~ruby
+~~~text
 [ERROR]      2.500[0.051]    || Assigned value not in range
 
 COMPLETE CALL STACK
 -------------------
-
+...
 ~~~
 
 
@@ -352,17 +330,17 @@ def initialize(options = {})
   if options[:environment] == :probe
     TestIds.configure :wafer_test do |config|
       config.bins.include << (100..500)
-      config.softbins = :bbb000
-      config.numbers do |bin, softbin|
-        (softbin * 10) + bin 
+      config.softbins.algorithm = :bbb000
+      config.numbers.callback needs: [:bin, :softbin] do |options|
+        (options[:softbin] * 10) + options[:bin] 
       end
     end
   else
     TestIds.configure :final_test do |config|
       config.bins.include << (1000..2000)
-      config.softbins = :bbb000
-      config.numbers do |bin, softbin|
-        (softbin * 10) + bin 
+      config.softbins.algorithm = :bbb000
+      config.numbers.callback needs: [:bin, :softbin] do |options|
+        (options[:softbin] * 10) + options[:bin] 
       end
     end
   end

@@ -219,8 +219,8 @@ describe "The softbin allocator" do
   it "the softbins can be generated from a callback" do
     TestIds.configure do |config|
       config.bins.include << (1..3)
-      config.softbins.callback do |bin|
-        bin * 3
+      config.softbins.callback do |options|
+        options[:bin] * 3
       end
     end
     t = a(:t1)

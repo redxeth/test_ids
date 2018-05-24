@@ -12,8 +12,8 @@ module TestIdsDev
           config.bins.include << (10..20)
           config.bins.exclude << 15
           config.softbins = :bbbxx
-          config.numbers do |bin, softbin|
-            softbin * 100
+          config.numbers do |options|
+            options[:softbin] * 100
           end
         end
       end

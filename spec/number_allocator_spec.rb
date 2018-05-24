@@ -206,8 +206,8 @@ describe "The number allocator" do
     TestIds.configure do |config|
       config.bins.include << (1..3)
       config.softbins.include << (500..600)
-      config.numbers.callback do |bin, softbin|
-        bin + softbin
+      config.numbers.callback do |options|
+        options[:bin] + options[:softbin]
       end
     end
     t = a(:t1)

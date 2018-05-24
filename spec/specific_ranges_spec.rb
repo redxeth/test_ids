@@ -23,13 +23,13 @@ describe "Specific Ranges for Bin, Softbin and Numbers" do
        end
      end 
 
-      config.softbins do |bin, options|
+      config.softbins do |options|
        if options[:softbin_range].is_a?(Range)
         TestIds.next_in_range(options[:softbin_range], options)
        end
       end
 
-      config.numbers do |bin, softbin, options|
+      config.numbers do |options|
        if options[:number_range].is_a?(Range)
         TestIds.next_in_range(options[:number_range], options)
        end
@@ -58,7 +58,7 @@ describe "Specific Ranges for Bin, Softbin and Numbers" do
     TestIds.configure do |config|
       config.bins.include << (1..4)
       config.softbins.include << (500..600)
-      config.numbers do |bin, softbin, options|
+      config.numbers do |options|
 
        if options[:number_range].is_a?(Range)
         TestIds.next_in_range(options[:number_range], options)
@@ -89,7 +89,7 @@ describe "Specific Ranges for Bin, Softbin and Numbers" do
 
   it "Softbin Ranges can be used to assign softbins" do
     TestIds.configure do |config|
-      config.softbins do |bin, options|
+      config.softbins do |options|
        if options[:softbin_range].is_a?(Range)
         TestIds.next_in_range(options[:softbin_range], options)
        end

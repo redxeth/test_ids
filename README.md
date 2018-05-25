@@ -314,7 +314,7 @@ TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
 TestIds.publish = Origen.mode.production?
 ~~~
 
-### Multiple Configurations
+## Multiple Configurations
 
 It may be the case that you want a different configuration for wafer test vs. final test for example. Multiple
 independent configurations can be created by supplying an identifier, like this:
@@ -350,6 +350,71 @@ Flow.create environment: :probe do
   # ...
 end
 ~~~
+
+### Multiple Active Configurations
+
+It is also possible to define multiple configurations and then switch back and forth between them at runtime.
+
+If you test program interface logic defines multiple configurations at runtime like this:
+
+~~~ruby
+TestIds.repo =  "ssh://git@github.com:myaccount/my_test_ids.git"
+  
+TestIds.configure :my_config_1 do |config|
+  config.bins.include << (100..500)
+  config.softbins = :bbb000
+  config.numbers needs: [:bin, :softbin] do |options|
+    (options[:softbin] * 10) + options[:bin] 
+  end
+end
+
+TestIds.configure :my_config_2 do |config|
+  config.bins.include << (1000..2000)
+  config.softbins = :bbb000
+  config.numbers needs: [:bin, :softbin] do |options|
+    (options[:softbin] * 10) + options[:bin] 
+  end
+end
+~~~
+
+Then, by default the active configuration will be the last one that was defined, `:my_config_2` in this case.
+
+To switch the active configuration use this API:
+
+~~~ruby
+TestIds.allocate(my_test, options)    # Allocated from :my_config_2
+
+TestIds.config = :my_config_1
+
+TestIds.allocate(my_test, options)    # Allocated from :my_config_1
+~~~
+
+or to temporarily switch:
+
+~~~ruby
+TestIds.allocate(my_test, options)    # Allocated from :my_config_2
+
+TestIds.with_config :my_config_1 do
+
+  TestIds.allocate(my_test, options)    # Allocated from :my_config_1
+
+end
+
+TestIds.allocate(my_test, options)    # Allocated from :my_config_2
+~~~
+
+Finally, it is even possible to enable different configurations for different ID types:
+
+~~~ruby
+TestIds.bin_config = :my_config_1
+TestIds.softbin_config = :my_config_1
+TestIds.number_config = :my_config_2
+
+TestIds.allocate(my_test, options)    # Bin and Softbin allocated from :my_config_1, Number from :my_config_2
+~~~
+
+If only `TestIds.number_config` had been set, then the others would continue to be allocated from the default
+active configuration.
 
 ## Notes on Duplicates
 

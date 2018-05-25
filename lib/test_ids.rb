@@ -81,9 +81,11 @@ module TestIds
       configuration(@configuration_id)
     end
 
-    def configuration(id)
+    def configuration(id, fail_on_missing = true)
       return @configuration[id] if @configuration && @configuration[id]
-      fail('You have to create the configuration first before you can access it')
+      if fail_on_missing
+        fail('You have to create the configuration first before you can access it')
+      end
     end
     alias_method :config, :configuration
 
@@ -107,26 +109,46 @@ module TestIds
       initialize_git
     end
 
-    ## Can be called in place of TestIDs.configure to change the configuration from
-    ## the one that was originally supplied.
-    ## It is expected that this is mainly useful for testing purposes only.
-    # def reconfigure(id = nil, options = {}, &block)
-    #  id, options = nil, id if id.is_a?(Hash)
+    # Switch the current configuration to the given ID
+    def config=(id)
+      unless @configuration[id]
+        fail "The TestIds configuration '#{id}' has not been defined yet!"
+      end
+      @configuration_id = id
+    end
 
-    #  @configuration_id = id || options[:id] || :not_specified
+    def bin_config=(id)
+      @bin_config = id
+    end
 
-    #  @configuration ||= {}
+    def bin_config
+      @bin_config ? configuration(@bin_config, false) : current_configuration
+    end
 
-    #  old = @configuration[@configuration_id]
-    #  new = Configuration.new(@configuration_id)
-    #  new.instance_variable_set('@allocator', old.allocator)
-    #  new.allocator.instance_variable_set('@config', new)
-    #  @configuration[@configuration_id] =  new
+    def softbin_config=(id)
+      @softbin_config = id
+    end
 
-    #  yield new
+    def softbin_config
+      @softbin_config ? configuration(@softbin_config, false) : current_configuration
+    end
 
-    #  new.validate!
-    # end
+    def number_config=(id)
+      @number_config = id
+    end
+
+    def number_config
+      @number_config ? configuration(@number_config, false) : current_configuration
+    end
+
+    # Temporarily switches the current configuration to the given ID for the
+    # duration of the given block, then switches it back to what it was
+    def with_config(id)
+      orig = @configuration_id
+      @configuration_id = id
+      yield
+      @configuration_id = orig
+    end
 
     def configured?
       !!@configuration_id

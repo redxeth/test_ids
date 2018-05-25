@@ -8,10 +8,18 @@ module TestIds
   class Allocator
     STORE_FORMAT_REVISION = 2
 
-    attr_reader :config
-
     def initialize(configuration)
       @config = configuration
+    end
+
+    def config(type = nil)
+      if type
+        type = type.to_s
+        type.chop! if type[-1] == 's'
+        TestIds.send("#{type}_config") || @config
+      else
+        @config
+      end
     end
 
     # Allocates a softbin number from the range specified in the test flow
@@ -80,34 +88,34 @@ module TestIds
       items = []
       items_required = 0
       if allocation_required?(:bin, options) ||
-         (allocation_required?(:softbin, options) && config.softbins.needs?(:bin)) ||
-         (allocation_required?(:number, options) && config.numbers.needs?(:bin))
+         (allocation_required?(:softbin, options) && config(:softbin).softbins.needs?(:bin)) ||
+         (allocation_required?(:number, options) && config(:number).numbers.needs?(:bin))
         items_required += 1
       else
         bin_done = true
       end
       if allocation_required?(:softbin, options) ||
-         (allocation_required?(:bin, options) && config.bins.needs?(:softbin)) ||
-         (allocation_required?(:number, options) && config.numbers.needs?(:softbin))
+         (allocation_required?(:bin, options) && config(:bin).bins.needs?(:softbin)) ||
+         (allocation_required?(:number, options) && config(:number).numbers.needs?(:softbin))
         items_required += 1
       else
         softbin_done = true
       end
       if allocation_required?(:number, options) ||
-         (allocation_required?(:bin, options) && config.bins.needs?(:number)) ||
-         (allocation_required?(:softbin, options) && config.softbins.needs?(:number))
+         (allocation_required?(:bin, options) && config(:bin).bins.needs?(:number)) ||
+         (allocation_required?(:softbin, options) && config(:softbin).softbins.needs?(:number))
         items_required += 1
       else
         number_done = true
       end
       items_required.times do |i|
-        if !bin_done && (!config.bins.needs?(:softbin) || softbin_done) && (!config.bins.needs?(:number) || number_done)
+        if !bin_done && (!config(:bin).bins.needs?(:softbin) || softbin_done) && (!config(:bin).bins.needs?(:number) || number_done)
           items << :bin
           bin_done = true
-        elsif !softbin_done && (!config.softbins.needs?(:bin) || bin_done) && (!config.softbins.needs?(:number) || number_done)
+        elsif !softbin_done && (!config(:softbin).softbins.needs?(:bin) || bin_done) && (!config(:softbin).softbins.needs?(:number) || number_done)
           items << :softbin
           softbin_done = true
-        elsif !number_done && (!config.numbers.needs?(:bin) || bin_done) && (!config.numbers.needs?(:softbin) || softbin_done)
+        elsif !number_done && (!config(:number).numbers.needs?(:bin) || bin_done) && (!config(:number).numbers.needs?(:softbin) || softbin_done)
           items << :number
           number_done = true
         else
@@ -129,12 +137,11 @@ module TestIds
       # Record any :nones that are present for later
       [:bin, :softbin, :number].each do |type|
         nones << type if options[type] == :none
+        config(type).allocator.instance_variable_set('@needs_regenerated', {})
       end
 
-      @needs_regenerated = {}
-
       allocation_order(options).each do |type|
-        _allocate(type, name, options)
+        config(type).allocator.send(:_allocate, type, name, options)
       end
 
       # Turn any :nones into nils in the returned options
@@ -227,7 +234,7 @@ module TestIds
       { 'bins' => 'bins', 'softbins' => 'softbins', 'numbers' => 'test_numbers' }.each do |type, name|
         if !config.send(type).function? && store['pointers'][type] == 'done'
           Origen.log.info "Checking for missing #{name}..."
-          recovered = add_missing_references(config.send(type), store['references'][type])
+          recovered = add_missing_references(config.send, store['references'][type])
           if recovered == 0
             Origen.log.info "  All #{name} are already available."
           else
@@ -368,6 +375,7 @@ module TestIds
         id = name
       end
       id = "#{id}_#{options[:index]}" if options[:index]
+      id = "#{id}_#{options[:test_ids_flow_id]}" if options[:test_ids_flow_id]
 
       val = store['assigned'][type_plural][id] ||= {}
 
@@ -417,7 +425,7 @@ module TestIds
       if options[type] == :none
         false
       else
-        !config.send("#{type}s").empty?
+        !config(type).send("#{type}s").empty?
       end
     end
 

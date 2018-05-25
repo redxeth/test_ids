@@ -136,11 +136,19 @@ module TestIds
     end
 
     def send_to_ate=(val)
-      @send_to_ate = val
+      @send_to_ate = !!val
     end
 
-    def send_to_ate
-      @send_to_ate
+    def send_to_ate?
+      defined?(@send_to_ate) ? @send_to_ate : true
+    end
+
+    def unique_by_flow=(val)
+      @unique_by_flow = !!val
+    end
+
+    def unique_by_flow?
+      @unique_by_flow || false
     end
 
     def validate!

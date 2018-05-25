@@ -33,13 +33,13 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
+      config.bins = :ssssxxxx
     end
     config.bins.needs?(:softbin).should == true
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.callback do |options|
+      config.bins do |options|
         10 * 10
       end
     end
@@ -47,7 +47,7 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.callback needs: :softbin do |softbin, options|
+      config.bins needs: :softbin do |softbin, options|
         softbin * 10
       end
     end
@@ -55,7 +55,7 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.callback needs: [:softbin, :number] do |softbin, number, options|
+      config.bins needs: [:softbin, :number] do |softbin, number, options|
         softbin * 10
       end
     end
@@ -84,7 +84,7 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
+      config.bins = :ssssxxxx
       config.softbins.include << (0..10)
       config.numbers.include << (0..10)
     end
@@ -92,9 +92,9 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
+      config.bins = :ssssxxxx
       config.softbins.include << (0..10)
-      config.numbers.callback do |options|
+      config.numbers do |options|
         10 * 10
       end
     end
@@ -102,9 +102,9 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
+      config.bins = :ssssxxxx
       config.softbins.include << (0..10)
-      config.numbers.callback needs: :bin do |bin, options|
+      config.numbers needs: :bin do |bin, options|
         bin * 10
       end
     end
@@ -112,9 +112,9 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
+      config.bins = :ssssxxxx
       config.softbins.include << (0..10)
-      config.numbers.callback needs: :softbin do |softbin, options|
+      config.numbers needs: :softbin do |softbin, options|
         softbin * 10
       end
     end
@@ -122,8 +122,8 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
-      config.softbins.callback needs: :number do |number, options|
+      config.bins = :ssssxxxx
+      config.softbins needs: :number do |number, options|
         number * 10
       end
       config.numbers.include << (0..10)
@@ -132,8 +132,8 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
-      config.softbins.callback needs: :number do |number, options|
+      config.bins = :ssssxxxx
+      config.softbins needs: :number do |number, options|
         number * 10
       end
       config.numbers.include << (0..10)
@@ -142,8 +142,8 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
-      config.softbins.callback needs: :number do |number, options|
+      config.bins = :ssssxxxx
+      config.softbins needs: :number do |number, options|
         number * 10
       end
       config.numbers.include << (0..10)
@@ -153,8 +153,8 @@ describe "The allocator" do
     TestIds.send(:reset)
 
     TestIds.configure do |config|
-      config.bins.algorithm = :ssssxxxx
-      config.softbins.callback needs: :number do |number, options|
+      config.bins = :ssssxxxx
+      config.softbins needs: :number do |number, options|
         number * 10
       end
       config.numbers.include << (0..10)
@@ -185,7 +185,7 @@ describe "The allocator" do
   it "corner case where the user asks for no bin number, but the softbin needs it" do
     TestIds.configure do |config|
       config.bins.include << (1..10)
-      config.softbins.callback needs: :bin do |options|
+      config.softbins needs: :bin do |options|
         options[:bin] * 1000
       end
     end

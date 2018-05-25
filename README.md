@@ -33,7 +33,7 @@ module MyApp
       TestIds.configure do |config|
         config.bins.include << (100..500)
         config.softbins = :bbb000
-        config.numbers.callback needs: [:bin, :softbin] do |options|
+        config.numbers needs: [:bin, :softbin] do |options|
           (options[:softbin] * 10) + options[:bin] 
         end
       end
@@ -128,7 +128,7 @@ The template describes the form that the given number should have, using the fol
 For example, to make the softbins equal to the bin number * 100, you can simply do:
 
 ~~~ruby
-config.softbins.algorithm = :bbb00
+config.softbins = :bbb00
 ~~~
 
 For bins 1, 2, 3 this would generate softbins 100, 200, 300.
@@ -137,7 +137,7 @@ Suppose that you have many tests assigned to the same bin number and you would l
 you can make some of the digits a unique counter instead:
 
 ~~~ruby
-config.softbins.algorithm = :bbbxx
+config.softbins = :bbbxx
 ~~~
 
 If all of your tests were bin 3 for example, then this would assign softbins 300 to 399.
@@ -148,11 +148,11 @@ If your numbers need to be derived from a function which cannot be expressed usi
 fall back to a custom callback function, here are some examples:
 
 ~~~ruby
-config.softbins.callback needs: :bin do |options|
+config.softbins needs: :bin do |options|
   options[:bin] * 3
 end
 
-config.numbers.callback needs: [:bin, :softbin] do |options|
+config.numbers needs: [:bin, :softbin] do |options|
   (options[:softbin] * 10) + options[:bin] 
 end
 ~~~
@@ -242,7 +242,7 @@ This is best shown by example:
 TestIds.configure :wafer_test do |config|
   config.bins.include << (1..5)
   config.softbins.size = 5
-  config.softbins.callback needs: :bin do |options|
+  config.softbins needs: :bin do |options|
     if options[:bin] == 1
       TestIds.next_in_range((1000..2000))
     else
@@ -326,16 +326,16 @@ def initialize(options = {})
   if options[:environment] == :probe
     TestIds.configure :wafer_test do |config|
       config.bins.include << (100..500)
-      config.softbins.algorithm = :bbb000
-      config.numbers.callback needs: [:bin, :softbin] do |options|
+      config.softbins = :bbb000
+      config.numbers needs: [:bin, :softbin] do |options|
         (options[:softbin] * 10) + options[:bin] 
       end
     end
   else
     TestIds.configure :final_test do |config|
       config.bins.include << (1000..2000)
-      config.softbins.algorithm = :bbb000
-      config.numbers.callback needs: [:bin, :softbin] do |options|
+      config.softbins = :bbb000
+      config.numbers needs: [:bin, :softbin] do |options|
         (options[:softbin] * 10) + options[:bin] 
       end
     end

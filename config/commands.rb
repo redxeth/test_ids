@@ -33,6 +33,8 @@ when "examples", "test"
   # Program generator integration test
   ARGV = %w(program/prb1.rb -t default -e default -r approved)
   load "#{Origen.top}/lib/origen/commands/program.rb"
+  ARGV = %W(program/prb1.rb -t dut2 -o #{Origen.root}/output/dut2 -e default -r approved/dut2)
+  load "#{Origen.top}/lib/origen/commands/program.rb"
 
   if Origen.app.stats.changed_files == 0 &&
      Origen.app.stats.new_files == 0 &&

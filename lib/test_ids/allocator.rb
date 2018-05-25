@@ -111,7 +111,7 @@ module TestIds
           items << :number
           number_done = true
         else
-          fail "Couldn't work out whether to generate the bin, softbin or test number next on iteration #{i} of #{items_required}, already picked: #{items}"
+          fail "Couldn't work out whether to generate next on iteration #{i} of #{items_required}, already picked: #{items}"
         end
       end
       items
@@ -126,14 +126,9 @@ module TestIds
 
       nones = []
 
-      # Record any manual assignments that are present and any types that are set to :none
+      # Record any :nones that are present for later
       [:bin, :softbin, :number].each do |type|
         nones << type if options[type] == :none
-        # If the user has supplied any of these, that number should be used
-        # and reserved so that it is not automatically generated later
-        if options[type] && options[type].is_a?(Numeric)
-          store['manually_assigned']["#{type}s"][options[type].to_s] = true
-        end
       end
 
       @needs_regenerated = {}
@@ -374,30 +369,38 @@ module TestIds
       end
       id = "#{id}_#{options[:index]}" if options[:index]
 
-      size = options["#{type}_size".to_sym] || conf.size
-
       val = store['assigned'][type_plural][id] ||= {}
 
-      # Will be set if an upstream dependent type has been marked for regeneration by the code below
-      if @needs_regenerated[type]
-        val['number'] = nil
-        val['size'] = nil
-      # Regenerate the number if the original allocation has since been applied
-      # manually elsewhere
-      elsif store['manually_assigned'][type_plural][val['number'].to_s]
-        val['number'] = nil
-        val['size'] = nil
-        # Also regenerate these as they could be a function of the number we just invalidated
-        ([:bin, :softbin, :number] - [type]).each do |t|
-          if config.send("#{t}s").needs?(type)
-            @needs_regenerated[t] = true
+      if options[type].is_a?(Integer)
+        unless val['number'] == options[type]
+          store['manually_assigned']["#{type}s"][options[type].to_s] = true
+          val['number'] = options[type]
+        end
+      else
+        # Will be set if an upstream dependent type has been marked for regeneration by the code below
+        if @needs_regenerated[type]
+          val['number'] = nil
+          val['size'] = nil
+        # Regenerate the number if the original allocation has since been applied manually elsewhere
+        elsif store['manually_assigned'][type_plural][val['number'].to_s]
+          val['number'] = nil
+          val['size'] = nil
+          # Also regenerate these as they could be a function of the number we just invalidated
+          ([:bin, :softbin, :number] - [type]).each do |t|
+            if config.send("#{t}s").needs?(type)
+              @needs_regenerated[t] = true
+            end
           end
         end
       end
 
-      # Otherwise generate the missing ones
-      val['number'] ||= allocate_item(type, options.merge(size: size))
-      val['size'] ||= size
+      if size = options["#{type}_size".to_sym]
+        val['size'] = size
+      end
+
+      # Generate the missing ones
+      val['size'] ||= conf.size
+      val['number'] ||= allocate_item(type, options.merge(size: val['size']))
 
       # Record that there has been a reference to the final numbers
       time = Time.now.to_f
@@ -410,12 +413,8 @@ module TestIds
       options["#{type}_size".to_sym] = val['size']
     end
 
-    # Returns true if a new bin allocation has to be made, taking into account what is in the given options,
-    # but not considering if the given type may be a dependency of another type
     def allocation_required?(type, options)
       if options[type] == :none
-        false
-      elsif options[type] && options[type].is_a?(Integer)
         false
       else
         !config.send("#{type}s").empty?

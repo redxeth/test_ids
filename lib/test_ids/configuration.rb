@@ -96,18 +96,23 @@ module TestIds
       @id
     end
 
-    def bins(&block)
+    def bins(options = {}, &block)
       @bins ||= Item.new
       if block_given?
-        @bins.callback(&block)
+        @bins.callback(options, &block)
       end
       @bins
     end
 
-    def softbins(&block)
+    # An alias for config.bins.algorithm=
+    def bins=(val)
+      bins.algorithm = val
+    end
+
+    def softbins(options = {}, &block)
       @softbins ||= Item.new
       if block_given?
-        @softbins.callback(&block)
+        @softbins.callback(options, &block)
       end
       @softbins
     end
@@ -117,10 +122,10 @@ module TestIds
       softbins.algorithm = val
     end
 
-    def numbers(&block)
+    def numbers(options = {}, &block)
       @numbers ||= Item.new
       if block_given?
-        @numbers.callback(&block)
+        @numbers.callback(options, &block)
       end
       @numbers
     end

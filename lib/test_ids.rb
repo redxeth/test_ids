@@ -261,6 +261,9 @@ module TestIds
 
     def clear_configuration_id
       @configuration_id = nil
+      @bin_config = nil
+      @softbin_config = nil
+      @number_config = nil
     end
 
     def testing=(val)

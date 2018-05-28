@@ -9,9 +9,7 @@ module OrigenTesters
     def test(instance, options = {})
       if TestIds.configured?
         unless options[:test_ids] == :notrack
-          if TestIds.current_configuration.unique_by_flow?
-            options[:test_ids_flow_id] = id
-          end
+          options[:test_ids_flow_id] = id
 
           TestIds.current_configuration.allocator.allocate(instance, options)
 

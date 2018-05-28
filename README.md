@@ -217,7 +217,6 @@ would like them to have unique test numbers (for example).
 That can be achieved by setting the <code>:bin</code>, <code>:softbin</code> or <code>:number</code> options
 to a Symbol or String value as shown below:
 
-
 ~~~ruby
 # These will have the same bin and softbin number, but unique test numbers
 func :my_func_33mhz, test_id: :my_func, number: :my_func_33mhz
@@ -230,6 +229,19 @@ func :my_func_25mhz, bin: :my_func
 func :my_func_16mhz, bin: :my_func
 ~~~
 
+Finally, if the same test occurs in multiple test flows then it will be assigned the same numbers
+unless it has been differentiated by one of the approaches discussed above.
+
+However, if you generally want to treat tests within different flows as being different, then setting the
+`unique_by_flow` configuration option to `true` will cause TestIds to append the flow name to whatever the
+test ID had otherwise been resolved to, thereby ensuring that matching tests in different flows
+will be treated as different tests:
+
+~~~ruby
+TestIds.configure :my_config do |config|
+  config.unique_by_flow = true
+end
+~~~
 
 ## Next In Range (Beta Feature)
 

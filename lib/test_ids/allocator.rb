@@ -375,7 +375,7 @@ module TestIds
         id = name
       end
       id = "#{id}_#{options[:index]}" if options[:index]
-      id = "#{id}_#{options[:test_ids_flow_id]}" if options[:test_ids_flow_id]
+      id = "#{id}_#{options[:test_ids_flow_id]}" if config.unique_by_flow?
 
       val = store['assigned'][type_plural][id] ||= {}
 

@@ -24,6 +24,7 @@ module TestIds
     # returned will be the same as would be injected into flow.test.
     def allocate(instance, options = {})
       opts = options.dup
+      inject_flow_id(opts)
       current_configuration.allocator.allocate(instance, opts)
       { bin: opts[:bin], bin_size: opts[:bin_size], softbin: opts[:softbin], softbin_size: opts[:softbin_size],
         number: opts[:number], number_size: opts[:number_size]
@@ -35,6 +36,7 @@ module TestIds
       opts = options.dup
       opts[:bin] = :none
       opts[:softbin] = :none
+      inject_flow_id(opts)
       current_configuration.allocator.allocate(instance, opts)
       {
         number: opts[:number], number_size: opts[:number_size]
@@ -46,6 +48,7 @@ module TestIds
       opts = options.dup
       opts[:bin] = :none
       opts[:number] = :none
+      inject_flow_id(opts)
       current_configuration.allocator.allocate(instance, opts)
       {
         softbin: opts[:softbin], softbin_size: opts[:softbin_size]
@@ -58,10 +61,18 @@ module TestIds
       opts = options.dup
       opts[:softbin] = :none
       opts[:number] = :none
+      inject_flow_id(opts)
       current_configuration.allocator.allocate(instance, opts)
       {
         softbin: opts[:bin], softbin_size: opts[:bin_size]
       }
+    end
+
+    # @api private
+    def inject_flow_id(options)
+      if Origen.interface_loaded?
+        options[:test_ids_flow_id] = Origen.interface.flow.id
+      end
     end
 
     # Load an existing allocator, which will be loaded with a configuration based on what has

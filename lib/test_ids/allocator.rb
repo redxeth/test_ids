@@ -8,10 +8,18 @@ module TestIds
   class Allocator
     STORE_FORMAT_REVISION = 2
 
-    attr_reader :config
-
     def initialize(configuration)
       @config = configuration
+    end
+
+    def config(type = nil)
+      if type
+        type = type.to_s
+        type.chop! if type[-1] == 's'
+        TestIds.send("#{type}_config") || @config
+      else
+        @config
+      end
     end
 
     # Allocates a softbin number from the range specified in the test flow
@@ -73,135 +81,94 @@ module TestIds
       assigned_value
     end
 
+    # Returns an array containing :bin, :softbin, :number in the order that they should be calculated in order to fulfil
+    # the requirements of the current configuration and the given options.
+    # If an item is not required (e.g. if set to :none in the options), then it will not be present in the array.
+    def allocation_order(options)
+      items = []
+      items_required = 0
+      if allocation_required?(:bin, options) ||
+         (allocation_required?(:softbin, options) && config(:softbin).softbins.needs?(:bin)) ||
+         (allocation_required?(:number, options) && config(:number).numbers.needs?(:bin))
+        items_required += 1
+      else
+        bin_done = true
+      end
+      if allocation_required?(:softbin, options) ||
+         (allocation_required?(:bin, options) && config(:bin).bins.needs?(:softbin)) ||
+         (allocation_required?(:number, options) && config(:number).numbers.needs?(:softbin))
+        items_required += 1
+      else
+        softbin_done = true
+      end
+      if allocation_required?(:number, options) ||
+         (allocation_required?(:bin, options) && config(:bin).bins.needs?(:number)) ||
+         (allocation_required?(:softbin, options) && config(:softbin).softbins.needs?(:number))
+        items_required += 1
+      else
+        number_done = true
+      end
+      items_required.times do |i|
+        if !bin_done && (!config(:bin).bins.needs?(:softbin) || softbin_done) && (!config(:bin).bins.needs?(:number) || number_done)
+          items << :bin
+          bin_done = true
+        elsif !softbin_done && (!config(:softbin).softbins.needs?(:bin) || bin_done) && (!config(:softbin).softbins.needs?(:number) || number_done)
+          items << :softbin
+          softbin_done = true
+        elsif !number_done && (!config(:number).numbers.needs?(:bin) || bin_done) && (!config(:number).numbers.needs?(:softbin) || softbin_done)
+          items << :number
+          number_done = true
+        else
+          fail "Couldn't work out whether to generate next on iteration #{i} of #{items_required}, already picked: #{items}"
+        end
+      end
+      items
+    end
+
     # Main method to inject generated bin and test numbers, the given
     # options instance is modified accordingly
     def allocate(instance, options)
       orig_options = options.dup
       clean(options)
-      @callbacks = []
       name = extract_test_name(instance, options)
-      name = "#{name}_#{options[:index]}" if options[:index]
 
-      # First work out the test ID to be used for each of the numbers, and how many numbers
-      # should be reserved
-      if (options[:bin].is_a?(Symbol) || options[:bin].is_a?(String)) && options[:bin] != :none
-        bin_id = options[:bin].to_s
-      else
-        bin_id = name
-      end
-      if (options[:softbin].is_a?(Symbol) || options[:softbin].is_a?(String)) && options[:softbin] != :none
-        softbin_id = options[:softbin].to_s
-      else
-        softbin_id = name
-      end
-      if (options[:number].is_a?(Symbol) || options[:number].is_a?(String)) && options[:number] != :none
-        number_id = options[:number].to_s
-      else
-        number_id = name
+      nones = []
+
+      # Record any :nones that are present for later
+      [:bin, :softbin, :number].each do |type|
+        nones << type if options[type] == :none
+        config(type).allocator.instance_variable_set('@needs_regenerated', {})
       end
 
-      bin_size = options[:bin_size] || config.bins.size
-      softbin_size = options[:softbin_size] || config.softbins.size
-      number_size = options[:number_size] || config.numbers.size
-
-      bin = store['assigned']['bins'][bin_id] ||= {}
-      softbin = store['assigned']['softbins'][softbin_id] ||= {}
-      number = store['assigned']['numbers'][number_id] ||= {}
-
-      # If the user has supplied any of these, that number should be used
-      # and reserved so that it is not automatically generated later
-      if options[:bin] && options[:bin].is_a?(Numeric)
-        bin['number'] = options[:bin]
-        bin['size'] = bin_size
-        store['manually_assigned']['bins'][options[:bin].to_s] = true
-      # Regenerate the bin if the original allocation has since been applied
-      # manually elsewhere
-      elsif store['manually_assigned']['bins'][bin['number'].to_s]
-        bin['number'] = nil
-        bin['size'] = nil
-        # Also regenerate these as they could be a function of the bin
-        if config.softbins.function?
-          softbin['number'] = nil
-          softbin['size'] = nil
-        end
-        if config.numbers.function?
-          number['number'] = nil
-          number['size'] = nil
-        end
-      end
-      if options[:softbin] && options[:softbin].is_a?(Numeric)
-        softbin['number'] = options[:softbin]
-        softbin['size'] = softbin_size
-        store['manually_assigned']['softbins'][options[:softbin].to_s] = true
-      elsif store['manually_assigned']['softbins'][softbin['number'].to_s]
-        softbin['number'] = nil
-        softbin['size'] = nil
-        # Also regenerate the number as it could be a function of the softbin
-        if config.numbers.function?
-          number['number'] = nil
-          number['size'] = nil
-        end
-      end
-      if options[:number] && options[:number].is_a?(Numeric)
-        number['number'] = options[:number]
-        number['size'] = number_size
-        store['manually_assigned']['numbers'][options[:number].to_s] = true
-      elsif store['manually_assigned']['numbers'][number['number'].to_s]
-        number['number'] = nil
-        number['size'] = nil
-        # Also regenerate the softbin as it could be a function of the number
-        if config.softbins.function?
-          softbin['number'] = nil
-          softbin['size'] = nil
-        end
+      allocation_order(options).each do |type|
+        config(type).allocator.send(:_allocate, type, name, options)
       end
 
-      # Otherwise generate the missing ones
-      bin['number'] ||= allocate_bin(options.merge(size: bin_size))
-      bin['size'] ||= bin_size
-      # If the softbin is based on the test number, then need to calculate the
-      # test number first.
-      # Also do the number first if the softbin is a callback and the number is not.
-      if (config.softbins.algorithm && config.softbins.algorithm.to_s =~ /n/) ||
-         (config.softbins.callback && !config.numbers.function?)
-        number['number'] ||= allocate_number(options.merge(bin: bin['number'], size: number_size))
-        number['size'] ||= number_size
-        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], number: number['number'], size: softbin_size))
-        softbin['size'] ||= softbin_size
-      else
-        softbin['number'] ||= allocate_softbin(options.merge(bin: bin['number'], size: softbin_size))
-        softbin['size'] ||= softbin_size
-        number['number'] ||= allocate_number(options.merge(bin: bin['number'], softbin: softbin['number'], size: number_size))
-        number['size'] ||= number_size
-      end
-
-      # Record that there has been a reference to the final numbers
-      time = Time.now.to_f
-      bin_size.times do |i|
-        store['references']['bins'][(bin['number'] + i).to_s] = time if bin['number'] && options[:bin] != :none
-      end
-      softbin_size.times do |i|
-        store['references']['softbins'][(softbin['number'] + i).to_s] = time if softbin['number'] && options[:softbin] != :none
-      end
-      number_size.times do |i|
-        store['references']['numbers'][(number['number'] + i).to_s] = time if number['number'] && options[:number] != :none
-      end
-
-      # Update the supplied options hash that will be forwarded to the program generator
-      unless options.delete(:bin) == :none
-        options[:bin] = bin['number']
-        options[:bin_size] = bin['size']
-      end
-      unless options.delete(:softbin) == :none
-        options[:softbin] = softbin['number']
-        options[:softbin_size] = softbin['size']
-      end
-      unless options.delete(:number) == :none
-        options[:number] = number['number']
-        options[:number_size] = number['size']
+      # Turn any :nones into nils in the returned options
+      nones.each do |type|
+        options[type] = nil
+        options["#{type}_size"] = nil
       end
 
       options
+    end
+
+    # Merge the given other store into the current one, it is assumed that both are formatted
+    # from the same (latest) revision
+    def merge_store(other_store)
+      store['pointers'] = store['pointers'].merge(other_store['pointers'])
+      @last_bin = store['pointers']['bins']
+      @last_softbin = store['pointers']['softbins']
+      @last_number = store['pointers']['numbers']
+      store['assigned']['bins'] = store['assigned']['bins'].merge(other_store['assigned']['bins'])
+      store['assigned']['softbins'] = store['assigned']['softbins'].merge(other_store['assigned']['softbins'])
+      store['assigned']['numbers'] = store['assigned']['numbers'].merge(other_store['assigned']['numbers'])
+      store['manually_assigned']['bins'] = store['manually_assigned']['bins'].merge(other_store['manually_assigned']['bins'])
+      store['manually_assigned']['softbins'] = store['manually_assigned']['softbins'].merge(other_store['manually_assigned']['softbins'])
+      store['manually_assigned']['numbers'] = store['manually_assigned']['numbers'].merge(other_store['manually_assigned']['numbers'])
+      store['references']['bins'] = store['references']['bins'].merge(other_store['references']['bins'])
+      store['references']['softbins'] = store['references']['softbins'].merge(other_store['references']['softbins'])
+      store['references']['numbers'] = store['references']['numbers'].merge(other_store['references']['numbers'])
     end
 
     def store
@@ -267,7 +234,7 @@ module TestIds
       { 'bins' => 'bins', 'softbins' => 'softbins', 'numbers' => 'test_numbers' }.each do |type, name|
         if !config.send(type).function? && store['pointers'][type] == 'done'
           Origen.log.info "Checking for missing #{name}..."
-          recovered = add_missing_references(config.send(type), store['references'][type])
+          recovered = add_missing_references(config.send, store['references'][type])
           if recovered == 0
             Origen.log.info "  All #{name} are already available."
           else
@@ -396,6 +363,72 @@ module TestIds
 
     private
 
+    def _allocate(type, name, options)
+      type_plural = "#{type}s"
+      conf = config.send(type_plural)
+
+      # First work out the test ID to be used for each of the numbers, and how many numbers
+      # should be reserved
+      if (options[type].is_a?(Symbol) || options[type].is_a?(String)) && options[type] != :none
+        id = options[type].to_s
+      else
+        id = name
+      end
+      id = "#{id}_#{options[:index]}" if options[:index]
+      id = "#{id}_#{options[:test_ids_flow_id]}" if config.unique_by_flow?
+
+      val = store['assigned'][type_plural][id] ||= {}
+
+      if options[type].is_a?(Integer)
+        unless val['number'] == options[type]
+          store['manually_assigned']["#{type}s"][options[type].to_s] = true
+          val['number'] = options[type]
+        end
+      else
+        # Will be set if an upstream dependent type has been marked for regeneration by the code below
+        if @needs_regenerated[type]
+          val['number'] = nil
+          val['size'] = nil
+        # Regenerate the number if the original allocation has since been applied manually elsewhere
+        elsif store['manually_assigned'][type_plural][val['number'].to_s]
+          val['number'] = nil
+          val['size'] = nil
+          # Also regenerate these as they could be a function of the number we just invalidated
+          ([:bin, :softbin, :number] - [type]).each do |t|
+            if config.send("#{t}s").needs?(type)
+              @needs_regenerated[t] = true
+            end
+          end
+        end
+      end
+
+      if size = options["#{type}_size".to_sym]
+        val['size'] = size
+      end
+
+      # Generate the missing ones
+      val['size'] ||= conf.size
+      val['number'] ||= allocate_item(type, options.merge(size: val['size']))
+
+      # Record that there has been a reference to the final numbers
+      time = Time.now.to_f
+      val['size'].times do |i|
+        store['references'][type_plural][(val['number'] + i).to_s] = time if val['number'] && options[type] != :none
+      end
+
+      # Update the supplied options hash that will be forwarded to the program generator
+      options[type] = val['number']
+      options["#{type}_size".to_sym] = val['size']
+    end
+
+    def allocation_required?(type, options)
+      if options[type] == :none
+        false
+      else
+        !config(type).send("#{type}s").empty?
+      end
+    end
+
     def remove_invalid_references(config_item, references, manually_assigned)
       removed = 0
       references.each do |num, time|
@@ -435,77 +468,34 @@ module TestIds
       recovered
     end
 
-    # Returns the next available bin in the pool, if they have all been given out
-    # the one that hasn't been used for the longest time will be given out
-    def allocate_bin(options)
-      # Not sure if this is the right way. IMO the following are true:
-      # 1. config.bins will have a callback only when ranges are specified.
-      # 2. If config.bins is empty but config.bins is not a callback, return nil to maintain functionality as before.
-      return nil if config.bins.empty? && !config.bins.callback
-      if store['pointers']['bins'] == 'done'
-        reclaim_bin(options)
-      elsif callback = config.bins.callback
-        callback.call(options)
-      else
-        b = config.bins.include.next(after: @last_bin, size: options[:size])
-        @last_bin = nil
-        while b && (store['manually_assigned']['bins'][b.to_s] || config.bins.exclude.include?(b))
-          b = config.bins.include.next(size: options[:size])
-        end
-        # When no bin is returned it means we have used them all, all future generation
-        # now switches to reclaim mode
-        if b
-          store['pointers']['bins'] = b
-        else
-          store['pointers']['bins'] = 'done'
-          reclaim_bin(options)
-        end
-      end
-    end
-
-    def reclaim_bin(options)
-      store['references']['bins'] = store['references']['bins'].sort_by { |k, v| v }.to_h
-      if options[:size] == 1
-        store['references']['bins'].first[0].to_i
-      else
-        reclaim(store['references']['bins'], options)
-      end
-    end
-
-    def allocate_softbin(options)
-      bin = options[:bin]
-      num = options[:number]
-      return nil if config.softbins.empty?
-      if config.softbins.algorithm
-        algo = config.softbins.algorithm.to_s.downcase
-        if algo.to_s =~ /^[b\dxn]+$/
+    def allocate_item(type, options)
+      type_plural = "#{type}s"
+      conf = config.send(type_plural)
+      if conf.algorithm
+        algo = conf.algorithm.to_s.downcase
+        if algo.to_s =~ /^[bsn\dx]+$/
           number = algo.to_s
-          bin = bin.to_s
-          if number =~ /(b+)/
-            max_bin_size = Regexp.last_match(1).size
-            if bin.size > max_bin_size
-              fail "Bin number (#{bin}) overflows the softbin number algorithm (#{algo})"
+          ([:bin, :softbin, :number] - [type]).each do |t|
+            if number =~ /(#{t.to_s[0]}+)/
+              max_size = Regexp.last_match(1).size
+              num = options[t].to_s
+              if num.size > max_size
+                fail "The allocated number, #{num}, overflows the #{t} field in the #{type} algorithm - #{algo}"
+              end
+              number = number.sub(/#{t.to_s[0]}+/, num.rjust(max_size, '0'))
             end
-            number = number.sub(/b+/, bin.rjust(max_bin_size, '0'))
           end
-          if number =~ /(n+)/
-            num = num.to_s
-            max_num_size = Regexp.last_match(1).size
-            if num.size > max_num_size
-              fail "Test number (#{num}) overflows the softbin number algorithm (#{algo})"
-            end
-            number = number.sub(/n+/, num.rjust(max_num_size, '0'))
-          end
+
           if number =~ /(x+)/
             max_counter_size = Regexp.last_match(1).size
-            refs = store['references']['softbins']
+            refs = store['references'][type_plural]
             i = 0
             possible = []
-            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
             possible << proposal
             while refs[proposal] && i.to_s.size <= max_counter_size
               i += 1
-              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
+              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0')).to_i.to_s
               possible << proposal
             end
             # Overflowed, need to go search for the oldest duplicate now
@@ -521,122 +511,41 @@ module TestIds
             number = proposal
           end
         else
-          fail "Unknown softbin algorithm: #{algo}"
+          fail "Illegal algorithm: #{algo}"
         end
         number.to_i
-      elsif callback = config.softbins.callback
-        callback.call(bin, options)
+      elsif callback = conf.callback
+        callback.call(options)
       else
-        if store['pointers']['softbins'] == 'done'
-          reclaim_softbin(options)
+        if store['pointers'][type_plural] == 'done'
+          reclaim_item(type, options)
         else
-          b = config.softbins.include.next(after: @last_softbin, size: options[:size])
-          @last_softbin = nil
-          while b && (store['manually_assigned']['softbins'][b.to_s] || config.softbins.exclude.include?(b))
-            b = config.softbins.include.next(size: options[:size])
-          end
-          # When no softbin is returned it means we have used them all, all future generation
-          # now switches to reclaim mode
-          if b
-            store['pointers']['softbins'] = b
-          else
-            store['pointers']['softbins'] = 'done'
-            reclaim_softbin(options)
-          end
-        end
-      end
-    end
-
-    def reclaim_softbin(options)
-      store['references']['softbins'] = store['references']['softbins'].sort_by { |k, v| v }.to_h
-      if options[:size] == 1
-        store['references']['softbins'].first[0].to_i
-      else
-        reclaim(store['references']['softbins'], options)
-      end
-    end
-
-    def allocate_number(options)
-      bin = options[:bin]
-      softbin = options[:softbin]
-      return nil if config.numbers.empty?
-      if config.numbers.algorithm
-        algo = config.numbers.algorithm.to_s.downcase
-        if algo.to_s =~ /^[bs\dx]+$/
-          number = algo.to_s
-          bin = bin.to_s
-          if number =~ /(b+)/
-            max_bin_size = Regexp.last_match(1).size
-            if bin.size > max_bin_size
-              fail "Bin number (#{bin}) overflows the test number algorithm (#{algo})"
-            end
-            number = number.sub(/b+/, bin.rjust(max_bin_size, '0'))
-          end
-          softbin = softbin.to_s
-          if number =~ /(s+)/
-            max_softbin_size = Regexp.last_match(1).size
-            if softbin.size > max_softbin_size
-              fail "Softbin number (#{softbin}) overflows the test number algorithm (#{algo})"
-            end
-            number = number.sub(/s+/, softbin.rjust(max_softbin_size, '0'))
-          end
-          if number =~ /(x+)/
-            max_counter_size = Regexp.last_match(1).size
-            refs = store['references']['numbers']
-            i = 0
-            possible = []
-            proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
-            possible << proposal
-            while refs[proposal] && i.to_s.size <= max_counter_size
-              i += 1
-              proposal = number.sub(/x+/, i.to_s.rjust(max_counter_size, '0'))
-              possible << proposal
-            end
-            # Overflowed, need to go search for the oldest duplicate now
-            if i.to_s.size > max_counter_size
-              i = 0
-              # Not the most efficient search algorithm, but this should be hit very rarely
-              # and even then only to generate the bin the first time around
-              p = refs.sort_by { |bin, last_used| last_used }.find do |bin, last_used|
-                possible.include?(bin)
-              end
-              proposal = p[0]
-            end
-            number = proposal
-          end
-          number.to_i
-        else
-          fail "Unknown test number algorithm: #{algo}"
-        end
-      elsif callback = config.numbers.callback
-        callback.call(bin, softbin, options)
-      else
-        if store['pointers']['numbers'] == 'done'
-          reclaim_number(options)
-        else
-          b = config.numbers.include.next(after: @last_number, size: options[:size])
-          @last_number = nil
-          while b && (store['manually_assigned']['numbers'][b.to_s] || config.numbers.exclude.include?(b))
-            b = config.numbers.include.next(size: options[:size])
+          b = conf.include.next(after: instance_variable_get("@last_#{type}"), size: options[:size])
+          instance_variable_set("@last_#{type}", nil)
+          while b && (store['manually_assigned'][type_plural][b.to_s] || conf.exclude.include?(b))
+            b = conf.include.next(size: options[:size])
           end
           # When no number is returned it means we have used them all, all future generation
           # now switches to reclaim mode
           if b
-            store['pointers']['numbers'] = b
+            store['pointers'][type_plural] = b + (options[:size] || 1) - 1
+            b
           else
-            store['pointers']['numbers'] = 'done'
-            reclaim_number(options)
+            store['pointers'][type_plural] = 'done'
+            reclaim_item(type, options)
           end
         end
       end
     end
 
-    def reclaim_number(options)
-      store['references']['numbers'] = store['references']['numbers'].sort_by { |k, v| v }.to_h
+    def reclaim_item(type, options)
+      type_plural = "#{type}s"
+      store['references'][type_plural] = store['references'][type_plural].sort_by { |k, v| v }.to_h
       if options[:size] == 1
-        store['references']['numbers'].first[0].to_i
+        v = store['references'][type_plural].first
+        v[0].to_i if v
       else
-        reclaim(store['references']['numbers'], options)
+        reclaim(store['references'][type_plural], options)
       end
     end
 

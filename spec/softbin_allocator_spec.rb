@@ -204,11 +204,23 @@ describe "The softbin allocator" do
     a(:t10)[:softbin].should == 33
   end
 
+  it "the incremental counter can be leading" do
+    TestIds.configure do |config|
+      config.bins.include << 3
+      config.softbins.algorithm = "xxxbbb"
+    end
+    a(:t0)[:softbin].should == 3
+    a(:t1)[:softbin].should == 1003
+    a(:t2)[:softbin].should == 2003
+    a(:t3)[:softbin].should == 3003
+    a(:t2)[:softbin].should == 2003
+  end
+
   it "the softbins can be generated from a callback" do
     TestIds.configure do |config|
       config.bins.include << (1..3)
-      config.softbins.callback do |bin|
-        bin * 3
+      config.softbins.callback do |options|
+        options[:bin] * 3
       end
     end
     t = a(:t1)
@@ -230,8 +242,12 @@ describe "The softbin allocator" do
 
     t = a(:t1, softbin_size: 2)
     t[:softbin].should == 10
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['softbins'].should == 11
     t = a(:t2)
     t[:softbin].should == 12
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['softbins'].should == 16
     t = a(:t3)
     t[:softbin].should == 17
     t = a(:t4)

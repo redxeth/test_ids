@@ -189,12 +189,25 @@ describe "The number allocator" do
     a(:t10)[:number].should == 50030023
   end
 
+  it "the incremental counter can be leading" do
+    TestIds.configure do |config|
+      config.bins.include << 3
+      config.softbins.include << 2000
+      config.numbers.algorithm = "xxxssss"
+    end
+    a(:t0)[:number].should == 2000
+    a(:t1)[:number].should == 12000
+    a(:t2)[:number].should == 22000
+    a(:t3)[:number].should == 32000
+    a(:t2)[:number].should == 22000
+  end
+
   it "the numbers can be generated from a callback" do
     TestIds.configure do |config|
       config.bins.include << (1..3)
       config.softbins.include << (500..600)
-      config.numbers.callback do |bin, softbin|
-        bin + softbin
+      config.numbers.callback do |options|
+        options[:bin] + options[:softbin]
       end
     end
     t = a(:t1)
@@ -221,6 +234,8 @@ describe "The number allocator" do
 
     t = a(:t1)
     t[:number].should == 8000
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['numbers'].should == 8004
     t = a(:t2)
     t[:number].should == 8005
   end

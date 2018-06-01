@@ -152,8 +152,12 @@ describe "The bin allocator" do
 
     t = a(:t1, bin_size: 2)
     t[:bin].should == 10
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['bins'].should == 11
     t = a(:t2)
     t[:bin].should == 12
+    # Verify the pointer takes account of the size
+    TestIds.current_configuration.allocator.store['pointers']['bins'].should == 16
     t = a(:t3)
     t[:bin].should == 17
     t = a(:t4)

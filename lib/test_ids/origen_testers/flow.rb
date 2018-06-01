@@ -7,13 +7,16 @@ module OrigenTesters
     # test numbers
     alias_method :_orig_test, :test
     def test(instance, options = {})
-      if TestIds.configured? && options[:test_ids] != :notrack
-        TestIds.current_configuration.allocator.allocate(instance, options)
-      end
       if TestIds.configured?
-        if TestIds.current_configuration.send_to_ate == false
-          BIN_OPTS.each do |opt|
-            options.delete(opt)
+        unless options[:test_ids] == :notrack
+          options[:test_ids_flow_id] = id
+
+          TestIds.current_configuration.allocator.allocate(instance, options)
+
+          unless TestIds.current_configuration.send_to_ate?
+            BIN_OPTS.each do |opt|
+              options.delete(opt)
+            end
           end
         end
       end

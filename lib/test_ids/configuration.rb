@@ -1,20 +1,27 @@
 module TestIds
   class Configuration
     class Item
-      attr_accessor :include, :exclude, :algorithm, :size
+      attr_accessor :include, :exclude, :algorithm, :size, :needs
 
       def initialize
         @include = BinArray.new
         @exclude = BinArray.new
+        @needs = []
         @size = 1
       end
 
-      def callback(&block)
+      def callback(options = {}, &block)
         if block_given?
+          @needs += Array(options[:needs])
           @callback = block
         else
           @callback
         end
+      end
+
+      def needs?(type)
+        !!(!empty? && function? && (needs.include?(type) ||
+            (algorithm && (algorithm.to_s =~ /#{type.to_s[0]}/i))))
       end
 
       def empty?
@@ -36,6 +43,7 @@ module TestIds
       def freeze
         @include.freeze
         @exclude.freeze
+        @needs.freeze
         super
       end
 
@@ -88,18 +96,23 @@ module TestIds
       @id
     end
 
-    def bins(&block)
+    def bins(options = {}, &block)
       @bins ||= Item.new
       if block_given?
-        @bins.callback(&block)
+        @bins.callback(options, &block)
       end
       @bins
     end
 
-    def softbins(&block)
+    # An alias for config.bins.algorithm=
+    def bins=(val)
+      bins.algorithm = val
+    end
+
+    def softbins(options = {}, &block)
       @softbins ||= Item.new
       if block_given?
-        @softbins.callback(&block)
+        @softbins.callback(options, &block)
       end
       @softbins
     end
@@ -109,10 +122,10 @@ module TestIds
       softbins.algorithm = val
     end
 
-    def numbers(&block)
+    def numbers(options = {}, &block)
       @numbers ||= Item.new
       if block_given?
-        @numbers.callback(&block)
+        @numbers.callback(options, &block)
       end
       @numbers
     end
@@ -123,18 +136,23 @@ module TestIds
     end
 
     def send_to_ate=(val)
-      @send_to_ate = val
+      @send_to_ate = !!val
     end
 
-    def send_to_ate
-      @send_to_ate
+    def send_to_ate?
+      defined?(@send_to_ate) ? @send_to_ate : true
+    end
+
+    def unique_by_flow=(val)
+      @unique_by_flow = !!val
+    end
+
+    def unique_by_flow?
+      @unique_by_flow || false
     end
 
     def validate!
       unless validated?
-        if bins.algorithm
-          fail 'The TestIds bins configuration cannot be set to an algorithm, only a range set by bins.include and bins.exclude is permitted'
-        end
         @validated = true
         freeze
       end

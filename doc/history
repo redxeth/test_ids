@@ -1,3 +1,38 @@
+<a class="anchor release_tag" name="v1_0_0"></a>
+<h1><a href="#v1_0_0">Tag: v1.0.0</a></h1>
+
+##### Branch: 'master'
+
+##### by Stephen McGinty on 01-Jun-2018 14:42PM
+
+
+Significant internal overhaul, probably fixing many unknown bugs and corner
+cases.
+
+It is a breaking change in that callbacks now only have a single option argument
+and they should declare the other number types that they rely on, for example
+this:
+
+~~~ruby
+config.softbins do |bin|
+  bin * 5
+end
+~~~
+
+should now be changed to this:
+
+~~~ruby
+config.softbin needs: :bin do |options|
+  options[:bin] * 5
+end
+~~~
+
+See the pull request for full details on other improvements, or see the latest
+docs which are fully up to date:
+
+PR - https://github.com/Origen-SDK/test\_ids/pull/17
+Docs - https://origen-sdk.org/test\_ids
+
 <a class="anchor release_tag" name="v0_8_2"></a>
 <h1><a href="#v0_8_2">Tag: v0.8.2</a></h1>
 

@@ -1,7 +1,7 @@
 module TestIds
-  MAJOR = 0
-  MINOR = 8
-  BUGFIX = 2
+  MAJOR = 1
+  MINOR = 0
+  BUGFIX = 0
   DEV = nil
 
   VERSION = [MAJOR, MINOR, BUGFIX].join(".") + (DEV ? ".pre#{DEV}" : '')

@@ -161,6 +161,10 @@ module TestIds
       @configuration_id = orig
     end
 
+    def configs
+      @configuration.ids
+    end
+
     def configured?
       !!@configuration_id
     end

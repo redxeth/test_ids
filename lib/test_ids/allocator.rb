@@ -75,7 +75,7 @@ module TestIds
         assigned_value = range.to_a[@pointer]
       end
       unless !assigned_value.nil? && assigned_value.between?(range.min, range.max)
-        Origen.log.error 'Assigned value not in range'
+        Origen.log.error "Assigned value not in range for param ID '#{options[:param_id]}'"
         fail
       end
       assigned_value

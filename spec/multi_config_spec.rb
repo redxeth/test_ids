@@ -27,6 +27,7 @@ describe "The multi-configurator" do
       a(:t2)[:number].should == i * 100 + 10
       a(:t3)[:number].should == i * 100 + 20
     end
+    TestIds.configs.should ==  [:p1,:p2,:f1]
   end
 
   it "current_configuration can be updated" do

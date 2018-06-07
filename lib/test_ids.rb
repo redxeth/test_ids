@@ -128,6 +128,11 @@ module TestIds
       @configuration_id = id
     end
 
+    # Return an Array of configuration IDs
+    def configs
+      @configuration.ids
+    end
+
     def bin_config=(id)
       @bin_config = id
     end

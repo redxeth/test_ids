@@ -391,6 +391,12 @@ end
 
 Then, by default the active configuration will be the last one that was defined, `:my_config_2` in this case.
 
+The valid configs can be listed:
+
+~~~ruby
+TestIds.configs # => [:my_config_1, :my_config_2]
+~~~
+
 To switch the active configuration use this API:
 
 ~~~ruby

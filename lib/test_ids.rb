@@ -71,7 +71,8 @@ module TestIds
     # @api private
     def inject_flow_id(options)
       if Origen.interface_loaded?
-        options[:test_ids_flow_id] = Origen.interface.flow.id
+        flow = Origen.interface.flow
+        options[:test_ids_flow_id] = flow.try(:top_level).try(:id) || flow.id
       end
     end
 

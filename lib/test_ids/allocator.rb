@@ -34,19 +34,11 @@ module TestIds
 
     def range_item(range, options)
       orig_options = options.dup
-      # Now Check if the database (JSON file) exists.
-      # If file exists, load the database and create the alias for ['pointer']['ranges']
-      if file && File.exist?(file)
-        lines = File.readlines(file)
-        # Remove any header comment lines since these are not valid JSON
-        lines.shift while lines.first =~ /^\/\// && !lines.empty?
-        s = JSON.load(lines.join("\n"))
-        rangehash = s['pointers']['ranges']
-        rangehash = Hash[rangehash.map { |k, v| [k.to_sym, v] }]
-      else
-        # Create an alias for the databse that stores the pointers per range
-        rangehash = store['pointers']['ranges'] ||= {}
-      end
+
+      # Create an alias for the database that stores the pointers per range
+      rangehash = store['pointers']['ranges'] ||= {}
+      # remap keys to correct if file exists
+      rangehash = Hash[rangehash.map { |k, v| [k.to_sym, v] }] if file && File.exist?(file)
       # Check the database to see if the passed in range has already been included in the database hash
       if rangehash.key?(:"#{range}")
         # Read out the database hash to see what the last_softbin given out was for that range.
